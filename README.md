@@ -1,1 +1,2 @@
-= pyvc: Python library for communicating with VideoCore IV on Raspberr Pi
+pyvc: Python library for communicating with VideoCore IV on Raspberr Pi
+=======================================================================
