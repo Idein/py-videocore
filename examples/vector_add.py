@@ -4,18 +4,18 @@ import numpy as np
 
 @qpucode
 def vector_add(asm):
-    setup_dma_load(mode = '32bit horizontal', Y = 0, X = 0, nrows = 2, ncols = 16)
+    setup_dma_load(nrows = 2)
     start_dma_load(uniform)
     wait_dma_load()
 
-    setup_vpm_read(mode = '32bit horizontal', Y = 0, nrows = 2)
-    setup_vpm_write(mode = '32bit horizontal', Y = 0)
+    setup_vpm_read(nrows = 2)
+    setup_vpm_write()
 
     mov(r0, vpm)
     mov(r1, vpm)
     fadd(vpm, r0, r1)
 
-    setup_dma_store(mode = '32bit horizontal', Y = 0, X = 0, nrows = 2, ncols = 16)
+    setup_dma_store(nrows = 2)
     start_dma_store(uniform)
     wait_dma_store()
 

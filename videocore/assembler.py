@@ -612,55 +612,61 @@ class Assembler(object):
         return self.mov(dst, self.REGISTERS['null'])
 
     @syntax_sugar
-    def setup_vpm_write(self, mode, stride=1, **kwargs):
+    def setup_vpm_write(self, mode = '32bit horizontal', stride = 1, Y = 0, **kwargs):
         modes      = mode.split()
         size       = {'8bit': 0, '16bit': 1, '32bit': 2}[modes.pop(0)]
         laned      = {'packed': 0, 'laned': 1}[modes.pop(0)] if size != 2 else 0
         horizontal = {'vertical': 0, 'horizontal': 1}[modes.pop(0)]
         if horizontal:
-            addr = kwargs['Y'] << 2 | kwargs['B'] if size == 0 else \
-                   kwargs['Y'] << 1 | kwargs['H'] if size == 1 else \
-                   kwargs['Y']
+            addr = Y << 2 | kwargs.get('B', 0) if size == 0 else \
+                   Y << 1 | kwargs.get('H', 0) if size == 1 else \
+                   Y
         else:
-            addr = (kwargs['Y'] & 0x30) << 6 | kwargs['X'] << 2 | kwargs['B'] if size == 0 else \
-                   (kwargs['Y'] & 0x30) << 5 | kwargs['X'] << 1 | kwargs['H'] if size == 1 else \
-                   (kwargs['Y'] & 0x30) << 4 | kwargs['X']
-        self.ldi(self.REGISTERS['vpmvcd_wr_setup'], stride<<12|horizontal<<11|laned<<10|size<<8|addr)
+            X = kwargs.get('X', 0)
+            addr = (Y & 0x30) << 6 | X << 2 | kwargs.get('B', 0) if size == 0 else \
+                   (Y & 0x30) << 5 | X << 1 | kwargs.get('H', 0) if size == 1 else \
+                   (Y & 0x30) << 4 | X
+        self.ldi(self.REGISTERS['vpmvcd_wr_setup'],
+                stride<<12|horizontal<<11|laned<<10|size<<8|addr)
 
     @syntax_sugar
-    def setup_vpm_read(self, mode, stride=1, nrows=1, **kwargs):
+    def setup_vpm_read(self, nrows, mode = '32bit horizontal', Y = 0, stride = 1, **kwargs):
         modes      = mode.split()
         size       = {'8bit': 0, '16bit': 1, '32bit': 2}[modes.pop(0)]
         laned      = {'packed': 0, 'laned': 1}[modes.pop(0)] if size != 2 else 0
         horizontal = {'vertical': 0, 'horizontal': 1}[modes.pop(0)]
         if horizontal:
-            addr = kwargs['Y'] << 2 | kwargs['B'] if size == 0 else \
-                   kwargs['Y'] << 1 | kwargs['H'] if size == 1 else \
-                   kwargs['Y']
+            addr = Y << 2 | kwargs.get('B', 0) if size == 0 else \
+                   Y << 1 | kwargs.get('H', 0) if size == 1 else \
+                   Y
         else:
-            addr = (kwargs['Y'] & 0x30) << 6 | kwargs['X'] << 2 | kwargs['B'] if size == 0 else \
-                   (kwargs['Y'] & 0x30) << 5 | kwargs['X'] << 1 | kwargs['H'] if size == 1 else \
-                   (kwargs['Y'] & 0x30) << 4 | kwargs['X']
-        self.ldi(self.REGISTERS['vpmvcd_rd_setup'], nrows<<20|stride<<12|horizontal<<11|laned<<10|size<<8|addr)
+            X = kwargs['X']
+            addr = (Y & 0x30) << 6 | X << 2 | kwargs.get('B', 0) if size == 0 else \
+                   (Y & 0x30) << 5 | X << 1 | kwargs.get('H', 0) if size == 1 else \
+                   (Y & 0x30) << 4 | X
+        self.ldi(self.REGISTERS['vpmvcd_rd_setup'],
+                nrows<<20|stride<<12|horizontal<<11|laned<<10|size<<8|addr)
 
     @syntax_sugar
-    def setup_dma_store(self, Y, X, mode, nrows, ncols, offset=0):
+    def setup_dma_store(self, nrows, mode = '32bit horizontal', Y = 0, X = 0, ncols = 16,
+            offset = 0):
         modes = mode.split()
         modew = 0x4 | offset if modes[0] == '8bit' else \
                 0x2 | offset if modes[0] == '16bit' else \
                 0
-        horizontal = modes[1] == 'horizontal'
+        horizontal = { 'horizontal': 1, 'vertical': 0 }[modes[1]]
         addr = Y<<4|X
         self.ldi(self.REGISTERS['vpmvcd_wr_setup'],
                 0x80000000|nrows<<23|ncols<<16|horizontal<<14|addr<<3|modew)
 
     @syntax_sugar
-    def setup_dma_load(self, Y, X, mode, nrows, ncols, offset=0, vpitch=1, mpitch=3):
+    def setup_dma_load(self, nrows, mode = '32bit horizontal', Y = 0, X = 0, ncols = 16,
+            offset = 0, vpitch = 1, mpitch = 3):
         modes = mode.split()
         modew = 0x4 | offset if modes[0] == '8bit' else \
                 0x2 | offset if modes[0] == '16bit' else \
                 0
-        vertical = modes[1] == 'vertical'
+        vertical = { 'horizontal': 0, 'vertical': 1 }[modes[1]]
         addr = Y<<4|X
         self.ldi(self.REGISTERS['vpmvcd_rd_setup'],
                 0x80000000|modew<<28|mpitch<<24|ncols<<20|nrows<<16|vpitch<<12|vertical<<11|addr)

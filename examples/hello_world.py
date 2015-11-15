@@ -6,13 +6,13 @@ NUM_THREADS = 16
 
 @qpucode
 def helloworld(asm):
-    setup_vpm_write(mode = '32bit horizontal', Y = 0)
-    setup_dma_store(mode = '32bit horizontal', Y = 0, X = 0, nrows=1, ncols=16)
+    setup_vpm_write()
+    setup_dma_store(nrows = 1)
 
     # Add uniform[:,0] and SIMD element number
     iadd(vpm, uniform, element_number)
 
-    # Write results, in VPM, back to host.
+    # Write results back to host.
     start_dma_store(uniform)
     wait_dma_store()
 
