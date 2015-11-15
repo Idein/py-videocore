@@ -36,3 +36,6 @@ with Driver() as drv:
     unif[1] = c.address
 
     prog(1, unif, timeout=1000)
+    print(a)
+    print(b)
+    print(c)
