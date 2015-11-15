@@ -58,12 +58,9 @@ class Memory(object):
         self.mailbox.release_memory(self.handle)
 
 class Program(object):
-    def __init__(self, driver, code_addr):
-        self.driver    = driver
-        self.code_addr = code_addr
-
-    def __call__(self, *args, **kwargs):
-        return self.driver.execute(self.code_addr, *args, **kwargs)
+    def __init__(self, code_addr, code):
+        self.address = code_addr
+        self.code    = code
 
 class Driver(object):
     def __init__(self,
@@ -113,18 +110,38 @@ class Driver(object):
     def __exit__(self, exc_type, value, traceback):
         self.close()
         return exc_type is None
+    
+    def copy(self, arr):
+        new_arr = Array(
+                shape   = arr.shape,
+                dtype   = arr.dtype,
+                address = self.memory.baseaddr + self.data_pos,
+                buffer  = self.memory.base,
+                offset  = self.data_pos
+                )
+        if self.data_pos + new_arr.nbytes > self.msg_area_base:
+            raise DriverError('Array too large')
+        self.data_pos += new_arr.nbytes
+        new_arr[:] = arr
+        return new_arr
 
-    def array(self, *args, **kwargs):
+    def alloc(self, *args, **kwargs):
         arr = Array(
                 *args,
                 address = self.memory.baseaddr + self.data_pos,
-                buffer = self.memory.base,
-                offset = self.data_pos,
+                buffer  = self.memory.base,
+                offset  = self.data_pos,
                 **kwargs)
         if self.data_pos + arr.nbytes > self.msg_area_base:
             raise DriverError('Array too large')
         self.data_pos += arr.nbytes
         return arr
+
+    def array(self, *args, **kwargs):
+        arr = np.array(*args, copy = False, **kwargs)
+        new_arr = self.alloc(arr.shape, arr.dtype)
+        new_arr[:] = arr
+        return new_arr
 
     def program(self, program, *args, **kwargs):
         if hasattr(program, '__call__'):
@@ -135,14 +152,19 @@ class Driver(object):
         code_addr = self.memory.baseaddr + self.code_pos
         self.memory.base[self.code_pos:self.code_pos+len(code)] = code
         self.code_pos += len(code)
-        return Program(self, code_addr)
+        return Program(code_addr, code)
 
-    def execute(self, code_addr, num_threads, uniforms, timeout):
+    def execute(self, num_threads, program, uniforms = None, timeout = 10000):
         if not (1 <= num_threads and num_threads <= self.max_threads):
-            raise DriverError('num_threads must be in range (1 .. {})'.format(self.max_threads))
-        self.message[:num_threads,0] = uniforms.addresses.reshape(num_threads, -1)[:,0]
+            raise DriverError('num_threads exceeds max_threads')
+        if uniforms:
+            uniforms = self.array(uniforms, dtype = 'u4')
+            self.message[:num_threads, 0] = uniforms.addresses.reshape(num_threads, -1)[:, 0]
+        else:
+            self.message[:num_threads, 0] = 0
 
-        self.message[:num_threads,1] = code_addr
-        r = self.mailbox.execute_qpu(num_threads, self.message.addresses[0, 0], 1, timeout)
+        self.message[:num_threads, 1] = program.address
+
+        r = self.mailbox.execute_qpu(num_threads, self.message.address, 1, timeout)
         if r > 0:
             raise DriverError('QPU execution timeout')
