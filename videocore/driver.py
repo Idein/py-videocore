@@ -1,8 +1,8 @@
 # QPU driver
 # Copytirhg (c) 2015 Koichi Nakamura
 
-from qpu.mailbox import MailBox
-from qpu.assembler import assemble
+from videocore.mailbox import MailBox
+from videocore.assembler import assemble
 import numpy as np
 import os, mmap
 import struct

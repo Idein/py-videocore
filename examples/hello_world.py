@@ -1,5 +1,5 @@
-from qpu.assembler import qpucode
-from qpu.driver import Driver
+from videocore.assembler import qpucode
+from videocore.driver import Driver
 import numpy as np
 
 NUM_THREADS = 16
