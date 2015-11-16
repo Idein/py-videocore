@@ -1,4 +1,4 @@
-py-videocore: Python library for GPGPU programming on Raspberry Pi
+PyVideoCore: Python library for GPGPU programming on Raspberry Pi
 ==================================================================
 
 This python library is to help GPGPU programming using 
