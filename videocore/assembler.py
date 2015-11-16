@@ -234,6 +234,9 @@ ADD_INSTRUCTIONS = ['nop', 'fadd', 'fsub', 'fmin', 'fmax', 'fminabs', 'fmaxabs',
 
 MUL_INSTRUCTIONS = ['nop', 'fmul', 'mul24', 'v8muld', 'v8min', 'v8max', 'v8adds', 'v8subs']
 
+BRANCH_INSTRUCTIONS = ['jz', 'jnz', 'jz_any', 'jnz_any', 'jn', 'jnn', 'jn_any', 'jnn_any',
+        'jc', 'jnc', 'jc_any', 'jnc_any', '', '', '', 'jmp']
+
 class Insn(Structure):
     def to_bytes(self):
         return string_at(byref(self), sizeof(self))
@@ -264,14 +267,6 @@ class LoadInsn(Insn):
         ('unpack',    c_ulong, 3), ('sig',        c_ulong, 4)
     ]
 
-class SemaphoreInsn(Insn):
-    _fields_ = [
-        ('semaphore', c_ulong, 4), ('sa',        c_ulong, 1), ('dontcare', c_ulong, 27),
-        ('waddr_mul', c_ulong, 6), ('waddr_add', c_ulong, 6), ('ws',       c_ulong, 1),
-        ('sf',        c_ulong, 1), ('cond_mul',  c_ulong, 3), ('cond_add', c_ulong, 3),
-        ('pack',      c_ulong, 4), ('pm',        c_ulong, 1), ('code',     c_ulong, 7)
-    ]
-
 SIGNALING_BITS = {
     'breakpoint'                : 0,
     'no signal'                 : 1,
@@ -287,7 +282,7 @@ SIGNALING_BITS = {
     'load tmu1'                 : 11,
     'load alpha'                : 12,
     'alu small imm'             : 13,
-    'load immediate'            : 14,
+    'load'                      : 14,
     'branch'                    : 15
 }
 
@@ -528,16 +523,44 @@ class Assembler(object):
     REGISTERS = REGISTERS
 
     def __init__(self):
-        self.insns  = []
-        self.labels = []
+        self.insns  = []    # instruction words
+        self.pc     = 0     # program counter
+        self.labels = {}
+        self.backpatch_list = []
 
     def emit(self, insn, increment=True):
         if increment:
             self.insns.append(insn.to_bytes())
+            self.pc += 8
         else:
             self.insns[-1] = insn.to_bytes()
 
+    def get_insn(self, pc):
+        buf   = self.insns[pc/8]
+        bytes, = unpack('Q', buf)
+        sig = bytes >> 60
+        if sig == SIGNALING_BITS['branch']:
+            return BranchInsn.from_buffer_copy(buf)
+        elif sig == SIGNALING_BITS['load']:
+            return LoadInsn.from_buffer_copy(buf)
+        else:
+            return AluInsn.from_buffer_copy(buf)
+
+    def set_insn(self, pc, insn):
+        self.insns[pc/8] = insn.to_bytes()
+
+    def backpatch(self):
+        for insn_pc, label in self.backpatch_list:
+            if label not in self.labels:
+                raise AssembleError('Undefined label {}'.format(label))
+            insn = self.get_insn(insn_pc)
+            assert(isinstance(insn, BranchInsn))
+            insn.immediate = self.labels[label] - (insn_pc + 4*8)
+            self.set_insn(insn_pc, insn)
+        self.backpatch_list = []
+
     def getcode(self):
+        self.backpatch()
         return ''.join(self.insns)
 
     @syntax_sugar
@@ -598,6 +621,42 @@ class Assembler(object):
 
     def mul_insn(self, name, *args, **kwargs):
         return getattr(self.nop(), name)(*args, **kwargs)
+
+    def branch_insn(self, cond_br, target = 0, reg = None, link = REGISTERS['null']):
+        if isinstance(target, basestring):
+            self.backpatch_list.append((self.pc, target))
+            imm = 0
+            relative = True
+        elif isinstance(target, int):
+            imm = target
+            relative = False
+        else:
+            raise AssembleError('Invalid branch target {}'.format(target))
+
+        if reg:
+            if not (reg.spec & REG_READ_A):
+                raise AssembleError('Must be regfile A register {}'.format(reg))
+            raddr_a = reg.addr
+            use_reg = True
+        else:
+            raddr_a = 0
+            use_reg = False
+
+        waddr_add, waddr_mul, write_swap, pack, pm = locate_write_operands(link)
+        if pack or pm:
+            raise AssembleError('Packing can not be used with branch instruction')
+
+        self.emit(BranchInsn(
+            sig = 0xf, cond_br = cond_br, rel = relative, reg = use_reg,
+            raddr_a = raddr_a, ws = write_swap, waddr_add = waddr_add, waddr_mul = waddr_mul,
+            immediate = imm
+            ))
+
+    @syntax_sugar
+    def label(self, name):
+        if name in self.labels:
+            raise AssembleError('Duplicated labels {}'.format(name))
+        self.labels[name] = self.pc
 
     @syntax_sugar
     def mov(self, dst, src):
@@ -706,6 +765,11 @@ for opcode, name in enumerate(ADD_INSTRUCTIONS):
 for name in MUL_INSTRUCTIONS:
     if name not in ADD_INSTRUCTIONS:
         setattr(Assembler, name, partialmethod(Assembler.mul_insn, name))
+        INSTRUCTION_ALIASES.append(name)
+
+for cond_br, name in enumerate(BRANCH_INSTRUCTIONS):
+    if name:
+        setattr(Assembler, name, partialmethod(Assembler.branch_insn, cond_br))
         INSTRUCTION_ALIASES.append(name)
 
 SETUP_ASM_LOCALS = ast.parse(
