@@ -267,6 +267,15 @@ class LoadInsn(Insn):
         ('unpack',    c_ulong, 3), ('sig',        c_ulong, 4)
     ]
 
+class SemaInsn(Insn):
+    _fields_ = [
+        ('semaphore', c_ulong, 4), ('sa',        c_ulong, 1), ('dontcare',  c_ulong, 27),
+        ('waddr_mul', c_ulong, 6), ('waddr_add', c_ulong, 6), ('ws',        c_ulong, 1),
+        ('sf',        c_ulong, 1), ('cond_mul',  c_ulong, 3), ('cond_add',  c_ulong, 3),
+        ('pack',      c_ulong, 4), ('pm',        c_ulong, 1), ('unpack',    c_ulong, 3),
+        ('sig',       c_ulong, 4)
+    ]
+
 SIGNALING_BITS = {
     'breakpoint'                : 0,
     'no signal'                 : 1,
@@ -647,7 +656,7 @@ class Assembler(object):
             raise AssembleError('Packing can not be used with branch instruction')
 
         self.emit(BranchInsn(
-            sig = 0xf, cond_br = cond_br, rel = relative, reg = use_reg,
+            sig = 0xF, cond_br = cond_br, rel = relative, reg = use_reg,
             raddr_a = raddr_a, ws = write_swap, waddr_add = waddr_add, waddr_mul = waddr_mul,
             immediate = imm
             ))
@@ -657,6 +666,22 @@ class Assembler(object):
         if name in self.labels:
             raise AssembleError('Duplicated labels {}'.format(name))
         self.labels[name] = self.pc
+
+    def sema_insn(self, sa, sema_id):
+        if not (0 <= sema_id and sema_id <= 15):
+            raise AssembleError('Semaphore id must be in range (1..15)')
+
+        self.emit(SemaInsn(
+            sig = 0xE, unpack = 4, pm = 0, pack = 0, cond_add = 1, cond_mul = 1, sf = 0, ws = 0,
+            waddr_add = 0, waddr_mul = 0, sa = sa, semaphore = sema_id))
+
+    @syntax_sugar
+    def sema_up(self, sema_id):
+        self.sema_insn(1, sema_id)
+
+    @syntax_sugar
+    def sema_down(self, sema_id):
+        self.sema_insn(0, sema_id)
 
     @syntax_sugar
     def mov(self, dst, src):
