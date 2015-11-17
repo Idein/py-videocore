@@ -825,9 +825,3 @@ def assemble(f,*args, **kwargs):
     asm = Assembler()
     f(asm = asm, *args, **kwargs)
     return asm.getcode()
-
-if __name__ == '__main__':
-    import doctest
-    doctest.testmod(
-        extraglobs = REGISTERS
-    )
