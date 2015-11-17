@@ -21,7 +21,8 @@ import numpy
 class _partialmethod(partial):
     'A descriptor for methods behaves like :py:class:`functools.partial.`'
     def __get__(self, obj, type):
-        return partial(self.func, obj, *(self.args or ()), **(self.keywords or {}))
+        return partial(self.func, obj,
+                       *(self.args or ()), **(self.keywords or {}))
 
 class AssembleError(Exception):
     'Exception related to QPU assembler'
