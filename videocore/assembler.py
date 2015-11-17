@@ -80,8 +80,6 @@ _PACK = {
     '8d sat': 15,
     }
 
-MUL_PACK_CODES = { '8888 mul': 3, '8a mul': 4 }
-
 class Register(object):
     """Registers.
 
@@ -129,7 +127,7 @@ class Register(object):
             if not (self.spec & (_REG_AW | _REG_BW)):
                 raise AssembleError('Packing is not supported for the register {}'.format(self))
             spec = self.spec & (_REG_AW | _REG_BW)
-            pack = MUL_PACK_CODES[pat]
+            pack = _PACK[pat]
             pm   = True
 
         return Register(name = self.name, addr = self.addr, spec = spec, pack = pack, pm = pm)
