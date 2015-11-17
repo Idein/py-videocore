@@ -46,10 +46,10 @@ _REG_BW = 1 << 0   # ditto
 # See table 6 and 8 of the reference guide for details.
 _UNPACK = {
     'no unpack': 0,
-    '16a': 1,    # float16 to float32 or int16 to int 32 (bits [0:16])
-    '16b': 2,    # ditto (buts [16:32])
+    '16a': 1,    # float16 to float32 or int16 to int32 (bits [0:16])
+    '16b': 2,    # ditto (bits [16:32])
     'rep 8d': 3, # replicate MS byte 4 times.
-    '8a': 4,     # map [0, 255] to [0.0, 1.0] or int8 to int 32 (bits [0:8])
+    '8a': 4,     # map [0, 255] to [0.0, 1.0] or int8 to int32 (bits [0:8])
     '8b': 5,     # ditto (bits [8:16])
     '8c': 6,     # ditto (bits [16:24])
     '8d': 7      # ditto (bits [24:32])
