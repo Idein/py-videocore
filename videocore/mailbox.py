@@ -18,7 +18,6 @@ PARSE_ERROR     = 0x80000001
 
 class MailBoxException(Exception):
     'Exception related to mailbox property interface.'
-    pass
 
 class MailBox(object):
     """MailBox Property Interface.

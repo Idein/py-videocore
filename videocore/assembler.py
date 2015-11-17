@@ -25,7 +25,6 @@ class _partialmethod(partial):
 
 class AssembleError(Exception):
     'Exception related to QPU assembler'
-    pass
 
 REG_READ_A  = 0x8
 REG_READ_B  = 0x4

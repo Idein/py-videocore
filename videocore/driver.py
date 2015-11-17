@@ -15,7 +15,6 @@ DEFAULT_CODE_AREA_SIZE = 1024 * 1024
 
 class DriverError(Exception):
     'Exception related to QPU driver'
-    pass
 
 class Array(np.ndarray):
     def __new__(cls, *args, **kwargs):
