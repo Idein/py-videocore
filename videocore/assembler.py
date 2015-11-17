@@ -27,10 +27,6 @@ class _partialmethod(partial):
 class AssembleError(Exception):
     'Exception related to QPU assembler'
 
-REG_READ_A  = 0x8
-REG_READ_B  = 0x4
-REG_WRITE_A = 0x2
-REG_WRITE_B = 0x1
 
 UNPACK_CODES = { pat: code for code, pat in enumerate([
     'no unpack', '16a', '16b', 'rep 8d', '8a', '8b', '8c', '8d'])}
@@ -66,27 +62,27 @@ class Register(object):
         if self.name in ['r0', 'r1', 'r2', 'r3']:
             raise AssembleError('Accumulators r0-r3 have no unpack functionality')
         if self.name == 'r4':
-            spec = REG_READ_A | REG_READ_B
+            spec = _REG_AR | _REG_BR
         else:
-            if not (self.spec & REG_READ_A):
+            if not (self.spec & _REG_AR):
                 raise AssembleError('Unpacking is not supported for the register {}'.format(self))
-            spec = REG_READ_A # packing can be used for regfile A read registers.
+            spec = _REG_AR # packing can be used for regfile A read registers.
         return Register(name = self.name, addr = self.addr, spec = spec,
-                unpack = UNPACK_CODES[pat], pm = self.name == 'r4')
+                unpack = _UNPACK[pat], pm = self.name == 'r4')
 
     def pack(self, pat):
         if self.name in ['r0', 'r1', 'r2', 'r3']:
             raise AssembleError('Accumulators r0-r3 have no pack functionality')
         if pat in PACK_CODES:
-            if not (self.spec & REG_WRITE_A):
+            if not (self.spec & _REG_AW):
                 raise AssembleError('Packing is not supported for the register {}'.format(self))
-            spec = REG_WRITE_A
+            spec = _REG_AW
             pack = PACK_CODES[pat]
             pm   = False
         else:
-            if not (self.spec & (REG_WRITE_A | REG_WRITE_B)):
+            if not (self.spec & (_REG_AW | _REG_BW)):
                 raise AssembleError('Packing is not supported for the register {}'.format(self))
-            spec = self.spec & (REG_WRITE_A | REG_WRITE_B)
+            spec = self.spec & (_REG_AW | _REG_BW)
             pack = MUL_PACK_CODES[pat]
             pm   = True
 
@@ -404,12 +400,12 @@ def locate_read_operands(add1 = REGISTERS['r0'], add2 = REGISTERS['r0'],
             raddr_b = imm_value
             mux[i]  = INPUT_MUX_REGFILE_B
             immed   = True
-        elif (opd.spec & REG_READ_A) and not (opd.spec & REG_READ_B):
+        elif (opd.spec & _REG_AR) and not (opd.spec & _REG_BR):
             if raddr_a is not None and raddr_a != opd.addr:
                 raise AssembleError('Too many regfile A operand {}'.format(opd))
             raddr_a = opd.addr
             mux[i]  = INPUT_MUX_REGFILE_A
-        elif not (opd.spec & REG_READ_A) and (opd.spec & REG_READ_B):
+        elif not (opd.spec & _REG_AR) and (opd.spec & _REG_BR):
             if raddr_b is not None and raddr_b != opd.addr:
                 raise AssembleError('Too many regfile B operand {}'.format(opd))
             raddr_b = opd.addr
@@ -419,13 +415,13 @@ def locate_read_operands(add1 = REGISTERS['r0'], add2 = REGISTERS['r0'],
     for i, opd in enumerate(operands):
         if mux[i] is not None: continue
 
-        if not (opd.spec & (REG_READ_A | REG_READ_B)):
+        if not (opd.spec & (_REG_AR | _REG_BR)):
             raise AssembleError('{} can not be used as a read operand'.format(opd))
 
-        if raddr_a is None and opd.spec & REG_READ_A:
+        if raddr_a is None and opd.spec & _REG_AR:
             raddr_a = opd.addr
             mux[i]  = INPUT_MUX_REGFILE_A
-        elif raddr_b is None and opd.spec & REG_READ_B:
+        elif raddr_b is None and opd.spec & _REG_BR:
             raddr_b = opd.addr
             mux[i]  = INPUT_MUX_REGFILE_B
         else:
@@ -463,9 +459,9 @@ def locate_write_operands(add_dst = REGISTERS['null'], mul_dst = REGISTERS['null
             raise AssembleError('Too many packing')
         pack = add_dst.pack_bits
 
-    if add_dst.spec & REG_WRITE_A and mul_dst.spec & REG_WRITE_B:
+    if add_dst.spec & _REG_AW and mul_dst.spec & _REG_BW:
         return add_dst.addr, mul_dst.addr, False, pack, pm
-    elif mul_dst.spec & REG_WRITE_A and add_dst.spec & REG_WRITE_B:
+    elif mul_dst.spec & _REG_AW and add_dst.spec & _REG_BW:
         return add_dst.addr, mul_dst.addr, True, pack, pm
     raise AssembleError('{} and {} are not proper combination of destination registers'.format(add_dst, mul_dst))
 
@@ -594,11 +590,11 @@ class Assembler(object):
             reg2 = args[1]
             imm  = args[2]
 
-        if not (reg1.spec & REG_WRITE_A and reg2.spec & REG_WRITE_B):
+        if not (reg1.spec & _REG_AW and reg2.spec & _REG_BW):
             reg1, reg2 = reg2, reg1
-            if not (reg1.spec & REG_WRITE_A):
+            if not (reg1.spec & _REG_AW):
                 raise AssembleError('{} is not a write register of regfile A'.format(reg1))
-            if not (reg2.spec & REG_WRITE_B):
+            if not (reg2.spec & _REG_BW):
                 raise AssembleError('{} is not a write register of regfile B'.format(reg2))
 
         imm, unpack = pack_imm(imm)
@@ -655,7 +651,7 @@ class Assembler(object):
             raise AssembleError('Invalid branch target {}'.format(target))
 
         if reg:
-            if not (reg.spec & REG_READ_A):
+            if not (reg.spec & _REG_AR):
                 raise AssembleError('Must be regfile A register {}'.format(reg))
             raddr_a = reg.addr
             use_reg = True
