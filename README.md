@@ -1,9 +1,9 @@
 PyVideoCore
 ===========
 
-**Python library for GPGPU programming on Raspberry Pi**
-
 *This is work in progress project*
+
+**Python library for GPGPU programming on Raspberry Pi**
 
 PyVideoCore is a Python library for GPGPU on Raspberry Pi boards.
 The Raspberry Pi SoC integrates *Broadcom VideoCore IV* graphics core.  It has
