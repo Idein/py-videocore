@@ -55,12 +55,31 @@ _UNPACK = {
     '8d': 7      # ditto (bits [24:32])
     }
 
-_PACK_ADD = {
+# Encoding of regfile-a pack and MUL ALU Pack. Its usage is similar to
+# Register.unpack method.
+_PACK = {
+    'no pack': 0,
 
-PACK_CODES = { pat: code for code, pat in enumerate([
-    'no pack', '16a', '16b', '8888', '8a', '8b', '8c', '8d',
-    '32 sat', '16a sat', '16b sat', '8888 sat', '8a sat', '8b sat', '8c sat', '8d sat'
-    ])}
+    #--- packing without saturation (just take lower bits) ---
+    '16a': 1,       # float32 to float16 or int32 to int16 (bits [0:16])
+    '16b': 2,       # ditto (bits [16:32])
+    'rep 8a': 3,    # replicate LS byte 4 times.
+    '8a': 4,        # to uint8 with no saturation (bits [0:8])
+    '8b': 5,        # ditto (bits [8:16])
+    '8c': 6,        # ditto (bits [16:24])
+    '8d': 7,        # ditto (bits [24:32])
+
+    #--- packing with saturation ---
+    '32 sat': 8,
+    '16a sat': 9,
+    '16b sat': 10,
+    'rep 8a sat': 11,
+    '8a sat': 12,
+    '8b sat': 13,
+    '8c sat': 14,
+    '8d sat': 15,
+    }
+
 MUL_PACK_CODES = { '8888 mul': 3, '8a mul': 4 }
 
 class Register(object):
@@ -100,11 +119,11 @@ class Register(object):
     def pack(self, pat):
         if self.name in ['r0', 'r1', 'r2', 'r3']:
             raise AssembleError('Accumulators r0-r3 have no pack functionality')
-        if pat in PACK_CODES:
+        if pat in _PACK:
             if not (self.spec & _REG_AW):
                 raise AssembleError('Packing is not supported for the register {}'.format(self))
             spec = _REG_AW
-            pack = PACK_CODES[pat]
+            pack = _PACK[pat]
             pm   = False
         else:
             if not (self.spec & (_REG_AW | _REG_BW)):
