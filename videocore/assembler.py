@@ -45,7 +45,7 @@ _REG_BW = 1 << 0   # ditto
 # 16 bits of ra1 from signed int16 to signed int32 before the addition.
 # See table 6 and 8 of the reference guide for details.
 _UNPACK = {
-    'no unpack': 0,
+    'nop': 0,
     '16a': 1,    # float16 to float32 or int16 to int32 (bits [0:16])
     '16b': 2,    # ditto (bits [16:32])
     'rep 8d': 3, # replicate MS byte 4 times.
@@ -58,7 +58,7 @@ _UNPACK = {
 # Encoding of regfile-a pack and MUL ALU Pack. Its usage is similar to
 # Register.unpack method.
 _PACK = {
-    'no pack': 0,
+    'nop': 0,
 
     #--- packing without saturation (just take lower bits) ---
     '16a': 1,       # float32 to float16 or int32 to int16 (bits [0:16])
