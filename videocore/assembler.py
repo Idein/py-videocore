@@ -1,7 +1,7 @@
 # QPU assembler
 # Copytirhg (c) 2015 Koichi Nakamura
 
-import numpy as np
+import numpy
 from ctypes import Structure, c_ulong, string_at, byref, sizeof
 from struct import pack, unpack
 import inspect, ast
@@ -205,7 +205,7 @@ def pack_imm(val):
     elif isinstance(val, (int, long)):
         fmt = 'l' if val < 0 else 'L'
         return unpack('L', pack(fmt, val))[0], 0x0
-    elif not isinstance(val, (list, tuple, np.ndarray)):
+    elif not isinstance(val, (list, tuple, numpy.ndarray)):
         raise AssembleError('Unsupported immediate value {}'.format(val))
 
     # per-element immediate
