@@ -12,7 +12,7 @@ class partialmethod(partial):
         return partial(self.func, obj, *(self.args or ()), **(self.keywords or {}))
 
 class AssembleError(Exception):
-    "Exception related to QPU assembler"
+    'Exception related to QPU assembler'
     pass
 
 REG_READ_A  = 0x8

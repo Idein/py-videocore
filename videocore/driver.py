@@ -12,7 +12,7 @@ DEFAULT_DATA_AREA_SIZE = 32 * 1024 * 1024
 DEFAULT_CODE_AREA_SIZE = 1024 * 1024
 
 class DriverError(Exception):
-    "Exception related to QPU driver"
+    'Exception related to QPU driver'
     pass
 
 class Array(np.ndarray):

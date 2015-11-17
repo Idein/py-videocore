@@ -18,7 +18,7 @@ REQUEST_SUCCESS = 0x80000000
 PARSE_ERROR     = 0x80000001
 
 class MailBoxException(Exception):
-    "Exception related to mailbox property interface."
+    'Exception related to mailbox property interface.'
     pass
 
 class MailBox(object):
@@ -68,7 +68,7 @@ class MailBox(object):
     MEM_FLAG_HINT_PERMALOCK   = 1 << 6
 
     def __init__(self):
-        self.fd = os.open("/dev/vcio", os.O_RDONLY)
+        self.fd = os.open('/dev/vcio', os.O_RDONLY)
 
     def close(self):
         if self.fd:
@@ -83,7 +83,7 @@ class MailBox(object):
         return exc_value is None
 
     def _simple_call(self, name, tag, req_fmt, res_fmt, args):
-        "Call a method which has constant length response."
+        'Call a method which has constant length response.'
 
         # Since the mailbox property interface overwrites the request tag buffer for returning
         # values to the host, size of the buffer must have enough space for both request
