@@ -36,7 +36,7 @@ _REG_BR = 1 << 2   # ditto
 _REG_AW = 1 << 1   # ditto
 _REG_BW = 1 << 0   # ditto
 
-# Encoding of regfile-a unpack and R4 unpack. Call Register.unpack() method
+# Encoding of regfile-a unpack and R4 unpack. Call Register.unpack method
 # with one of keys of _UNPACK like this.
 #
 # >> iadd(r0, ra1.unpack('16a'), rb1)
