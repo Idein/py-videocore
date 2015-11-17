@@ -18,7 +18,8 @@ import ast
 import numpy
 
 
-class partialmethod(partial):
+class _partialmethod(partial):
+    'A descriptor for methods behaves like :py:class:`functools.partial.`'
     def __get__(self, obj, type):
         return partial(self.func, obj, *(self.args or ()), **(self.keywords or {}))
 
@@ -537,7 +538,7 @@ class MulInsnEmitter(object):
             ), increment=False)
 
 for opcode, name in enumerate(MUL_INSTRUCTIONS):
-    setattr(MulInsnEmitter, name, partialmethod(MulInsnEmitter.assemble, opcode))
+    setattr(MulInsnEmitter, name, _partialmethod(MulInsnEmitter.assemble, opcode))
 
 class Assembler(object):
     REGISTERS = REGISTERS
@@ -795,17 +796,17 @@ class Assembler(object):
 
 for opcode, name in enumerate(ADD_INSTRUCTIONS):
     if name:
-        setattr(Assembler, name, partialmethod(Assembler.add_insn, name, opcode))
+        setattr(Assembler, name, _partialmethod(Assembler.add_insn, name, opcode))
         INSTRUCTION_ALIASES.append(name)
 
 for name in MUL_INSTRUCTIONS:
     if name not in ADD_INSTRUCTIONS:
-        setattr(Assembler, name, partialmethod(Assembler.mul_insn, name))
+        setattr(Assembler, name, _partialmethod(Assembler.mul_insn, name))
         INSTRUCTION_ALIASES.append(name)
 
 for cond_br, name in enumerate(BRANCH_INSTRUCTIONS):
     if name:
-        setattr(Assembler, name, partialmethod(Assembler.branch_insn, cond_br))
+        setattr(Assembler, name, _partialmethod(Assembler.branch_insn, cond_br))
         INSTRUCTION_ALIASES.append(name)
 
 SETUP_ASM_LOCALS = ast.parse(
