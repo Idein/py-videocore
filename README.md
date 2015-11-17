@@ -1,21 +1,60 @@
-PyVideoCore: Python library for GPGPU programming on Raspberry Pi
-==================================================================
+PyVideoCore
+===========
 
-This python library is to help GPGPU programming using 
-Broadcom VideoCore IV on Raspberry Pi boards.
+**Python library for GPGPU programming on Raspberry Pi**
 
-Installation
-============
+*This is work in progress project*
 
-```
-$ git clone https://github.com/nineties/py-videocore.git
-$ cd py-videocore
-$ sudo python setup.py install
-```
+PyVideoCore is a Python library for GPGPU on Raspberry Pi boards.
+The Raspberry Pi SoC integrates *Broadcom VideoCore IV* graphics core.  It has
+12 quad processor units (QPU) which is dual-issue 16 way (4 way pipelined and 4
+way true) SIMD processor.  Read the following guide thoroughly to understand
+its architecture.
 
-References
-==========
+- [VideoCore(R) IV 3D Architecture Reference Guide (PDF)][1]
 
-- [VideoCore(R) IV 3D Architecture Reference Guide (pdf)](https://www.broadcom.com/docs/support/videocore/VideoCoreIV-AG100-R.pdf)
-- [Mailbox property interface](https://github.com/raspberrypi/firmware/wiki/Mailbox-property-interface) 
-- [hello_fft (Official GPGPU example)](https://github.com/raspberrypi/firmware/tree/master/opt/vc/src/hello_pi/hello_fft)
+As far as we know, modern GPGPU programming environments such as OpenCL do not
+support VideoCore.  Assembly programming is the only option at this moment and
+several QPU assemblers written by pioneers ([hermanhermitage][2],
+[petewarden][3], [elorimer][4] and so on) are available.
+
+PyVideoCore's QPU assembler is different from theirs in terms of that our
+assembly language is implemented as an *Internal DSL* of Python language.
+This makes GPGPU programming on Raspberry Pi relatively easier in the sense
+that
+
+- You can put host programs and GPU side programs in a single Python script.
+- You can execute the program without ahead-of-time compilation.
+- You can utilize Python functionality, libraries and tools to organize GPU
+  programs.
+
+## Requirements
+
+* Python 2.7
+* nose (if you want to run tests)
+
+## Installation
+
+    $ git clone https://github.com/nineties/py-videocore.git
+    $ cd py-videocore
+    $ sudo python setup.py install
+
+## Getting Started
+
+You have to run GPU programs as a super user.
+
+    $ sudo python examples/hello_world.py
+
+## Documentation
+
+TBD
+
+## License
+Code and documentation are released under
+[MIT license](https://github.com/nineties/py-videocore/blob/master/LICENSE)
+
+[1]: https://www.broadcom.com/docs/support/videocore/VideoCoreIV-AG100-R.pdf
+[2]: https://github.com/hermanhermitage/videocoreiv-qpu/blob/master/qpu-tutorial/qpuasm.md
+[3]: https://github.com/jetpacapp/qpu-asm
+[4]: https://github.com/elorimer/rpi-playground/tree/master/QPU/assembler
+
