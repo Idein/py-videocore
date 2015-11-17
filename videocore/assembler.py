@@ -1,4 +1,13 @@
-"""QPU assembler."""
+"""VideoCore IV QPU assembler.
+
+This module implements an assembly language for VideoCore IV QPU and its
+assembler. We took an approach that the language is implemented as an internal
+DSL of Python language.
+
+The QPU instruction set is described in the section 3 of the following document
+`VideoCore(R) IV 3D Architecture Reference Guide
+<https://www.broadcom.com/docs/support/videocore/VideoCoreIV-AG100-R.pdf>`__
+"""
 
 from functools import partial
 from ctypes import Structure, c_ulong, string_at, byref, sizeof
