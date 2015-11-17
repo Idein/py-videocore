@@ -1,5 +1,4 @@
-# QPU driver
-# Copytirhg (c) 2015 Koichi Nakamura
+"""VideoCore driver."""
 
 from videocore.mailbox import MailBox
 from videocore.assembler import assemble

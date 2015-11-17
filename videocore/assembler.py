@@ -1,5 +1,4 @@
-# QPU assembler
-# Copytirhg (c) 2015 Koichi Nakamura
+"""QPU assembler."""
 
 import numpy
 from ctypes import Structure, c_ulong, string_at, byref, sizeof

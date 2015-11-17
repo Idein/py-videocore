@@ -1,5 +1,4 @@
-# MailBox property interface
-# Copytirhg (c) 2015 Koichi Nakamura
+"""Wrapper of mailBox property interface."""
 
 import os
 from array import array
