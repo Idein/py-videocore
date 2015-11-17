@@ -1,10 +1,13 @@
 """QPU assembler."""
 
-import numpy
+from functools import partial
 from ctypes import Structure, c_ulong, string_at, byref, sizeof
 from struct import pack, unpack
-import inspect, ast
-from functools import partial
+import inspect
+import ast
+
+import numpy
+
 
 class partialmethod(partial):
     def __get__(self, obj, type):

@@ -1,10 +1,13 @@
 """VideoCore driver."""
 
+import os
+import struct
+import mmap
+
+import numpy as np
+
 from videocore.mailbox import MailBox
 from videocore.assembler import assemble
-import numpy as np
-import os, mmap
-import struct
 
 DEFAULT_MAX_THREADS = 1024
 DEFAULT_DATA_AREA_SIZE = 32 * 1024 * 1024
