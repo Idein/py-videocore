@@ -221,3 +221,31 @@ def test_pack_regA_float():
     assert np.allclose(F[2], to_float16(Y[2]>>16), rtol=1e-3)
     assert np.allclose(F[3], to_float16(Y[3]>> 0), rtol=1e-3)
     assert np.allclose(F[4], to_float16(Y[4]>>16), rtol=1e-3)
+
+#================================ MUL ALU Pack ================================
+
+@qpucode
+def pack_mul(asm):
+    for op in ['rep 8a mul', '8a mul', '8b mul', '8c mul', '8d mul']:
+        mov(ra0, vpm)
+        nop()
+        fmul(rb0.pack(op), ra0, 1.0)
+        nop()
+        mov(vpm, rb0)
+
+def test_pack_mul():
+    def to_byte(vec):
+        return np.clip(vec*255,0,255).astype('int32')
+    X = np.random.randn(5, 16).astype('float32')*0.5 + 0.5
+
+    Y = runcode(pack_mul, X)
+    Y = np.ndarray((5, 16), 'int32', Y)
+
+    assert all(np.abs(to_byte(X[0]) - ((Y[0]>> 0)&0xff).astype('int32')) <= 1)
+    assert all(np.abs(to_byte(X[0]) - ((Y[0]>> 8)&0xff).astype('int32')) <= 1)
+    assert all(np.abs(to_byte(X[0]) - ((Y[0]>>16)&0xff).astype('int32')) <= 1)
+    assert all(np.abs(to_byte(X[0]) - ((Y[0]>>24)&0xff).astype('int32')) <= 1)
+    assert all(np.abs(to_byte(X[1]) - ((Y[1]>> 0)&0xff).astype('int32')) <= 1)
+    assert all(np.abs(to_byte(X[2]) - ((Y[2]>> 8)&0xff).astype('int32')) <= 1)
+    assert all(np.abs(to_byte(X[3]) - ((Y[3]>>16)&0xff).astype('int32')) <= 1)
+    assert all(np.abs(to_byte(X[4]) - ((Y[4]>>24)&0xff).astype('int32')) <= 1)
