@@ -55,6 +55,13 @@ You have to run GPU programs as a super user.
 
     $ sudo python examples/hello_world.py
 
+Running Tests
+-------------
+
+::
+
+    sudo nosetests -v
+
 Documentation
 -------------
 
