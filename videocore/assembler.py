@@ -39,7 +39,7 @@ _REG_BW = 1 << 0   # ditto
 # Encoding of regfile-a unpack and R4 unpack. Call Register.unpack method
 # with one of keys of _UNPACK like this.
 #
-# >> iadd(r0, ra1.unpack('16a'), rb1)
+# >> iadd(r0, ra1.unpack('16a'), rb0)
 #
 # The assembler generates an instruction for this code that unpacks the lower
 # 16 bits of ra1 from signed int16 to signed int32 before the addition.
