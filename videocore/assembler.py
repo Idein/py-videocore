@@ -206,6 +206,7 @@ SMALL_IMMEDIATES.update({repr(i): i for i in range(16)})
 SMALL_IMMEDIATES.update({repr(i-16): i+16 for i in range(16)})
 SMALL_IMMEDIATES.update({repr(2.0**i): i+32 for i in range(8)})
 SMALL_IMMEDIATES.update({repr(2.0**(i-8)): i+40 for i in range(8)})
+SMALL_IMMEDIATES['0.0'] = 0 # binary representations of 0 and 0.0 are same
 
 def pack_small_imm(val):
     """Pack 'val' to 6-bit array for ALU instruction with small immediates.
@@ -543,8 +544,14 @@ class MulInsnEmitter(object):
         waddr_add, waddr_mul, write_swap, pack, write_pm =\
                 locate_write_operands(self.add_dst, mul_dst)
 
-        if read_pm != write_pm:
+        if unpack and pack and read_pm != write_pm:
             raise AssembleError('Invalid combination of packing and unpacking')
+        elif unpack and not pack:
+            pm = read_pm
+        elif pack and not unpack:
+            pm = write_pm
+        else:
+            pm = 0
 
         if immed or rotate:
             if self.sig != 'no signal':
@@ -566,7 +573,7 @@ class MulInsnEmitter(object):
         self.asm.emit(AluInsn(
             sig       = sig_bits,
             unpack    = unpack,
-            pm        = read_pm,
+            pm        = pm,
             pack      = pack,
             sf        = self.set_flags,
             ws        = write_swap,
@@ -676,9 +683,16 @@ class Assembler(object):
         waddr_add, waddr_mul, write_swap, pack, write_pm = \
                 locate_write_operands(dst, self.REGISTERS['null'])
 
-        if read_pm != write_pm:
+        if unpack and pack and read_pm != write_pm:
             raise AssembleError('Invalid combination of packing and unpacking')
-        self.emit(AluInsn(sig = sig_bits, unpack = unpack, pm = read_pm, pack = pack,
+        elif unpack and not pack:
+            pm = read_pm
+        elif pack and not unpack:
+            pm = write_pm
+        else:
+            pm = 0
+
+        self.emit(AluInsn(sig = sig_bits, unpack = unpack, pm = pm, pack = pack,
             cond_add = 1, cond_mul = 1, sf = set_flags, ws = write_swap,
             op_add = opcode, waddr_add = waddr_add, waddr_mul = waddr_mul,
             raddr_a = raddr_a, raddr_b = raddr_b, add_a = add_a, add_b = add_b,
@@ -743,8 +757,8 @@ class Assembler(object):
         self.sema_insn(0, sema_id)
 
     @syntax_sugar
-    def mov(self, dst, src):
-        return self.bor(dst, src, src)
+    def mov(self, dst, src, **kwargs):
+        return self.bor(dst, src, 0, **kwargs)
 
     @syntax_sugar
     def read(self, src):
@@ -824,7 +838,8 @@ class Assembler(object):
 
     @syntax_sugar
     def wait_dma_store(self):
-        return self.read(self.REGISTERS['vpm_st_wait'])
+        return self.bor(self.REGISTERS['null'], self.REGISTERS['vpm_st_wait'],
+                        self.REGISTERS['vpm_st_wait'])
 
     @syntax_sugar
     def wait_dma_load(self):
@@ -880,7 +895,7 @@ def qpucode(f):
     exec(code, f.__globals__, scope)
     return scope[f.__name__]
 
-def assemble(f,*args, **kwargs):
+def assemble(f, *args, **kwargs):
     asm = Assembler()
-    f(asm = asm, *args, **kwargs)
+    f(asm, *args, **kwargs)
     return asm.getcode()
