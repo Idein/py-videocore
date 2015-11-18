@@ -768,7 +768,7 @@ class Assembler(object):
 
     @syntax_sugar
     def mov(self, dst, src, **kwargs):
-        return self.bor(dst, src, 0, **kwargs)
+        return self.bor(dst, src, src, **kwargs)
 
     @syntax_sugar
     def read(self, src):
