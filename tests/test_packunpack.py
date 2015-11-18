@@ -169,32 +169,55 @@ def test_pack_regA_int_no_sat():
 
 @qpucode
 def pack_regA_int_sat(asm):
-    for op in ['16a sat', '16b sat', 'rep 8a sat', '8a sat', '8b sat',
-               '8c sat', '8d sat']:
-        mov(ra0.pack(op), vpm)
+    for op in ['32 sat', '16a sat', '16b sat', 'rep 8a sat', '8a sat',
+               '8b sat', '8c sat', '8d sat']:
+        mov(ra0, vpm)
+        nop()
+        iadd(ra0.pack(op), ra0, ra0)
         nop()
         mov(vpm, ra0)
 
 def test_pack_regA_int_sat():
-    X = np.array(
-            [getrandbits(32) for i in range(7*16)]
-            ).reshape(7, 16).astype('int32')
+    X = np.zeros((8, 16), dtype='int32')
+    X[0] = np.array([getrandbits(32) for i in range(16)]).astype('int32')
+    X[1:3] = np.array(
+            [getrandbits(16) for i in range(2*16)]
+            ).reshape(2, 16).astype('int16')
+    X[3:] = np.array(
+            [getrandbits(8) for i in range(5*16)]
+            ).reshape(5, 16).astype('int8')
 
-    idx = np.random.choice(16, 8)
-    n = len(idx)
-    X[:2, idx] = np.array(
-            [getrandbits(16) for i in range(2*n)]
-            ).reshape(2, n).astype('int16')
-    X[2:, idx] = np.array(
-            [getrandbits(8) for i in range(5*n)]
-            ).reshape(5, n).astype('int8')
+    Y = runcode(pack_regA_int_sat, X)
 
-    Y = runcode(pack_regA_int_sat, X.astype('uint32'))
+    assert all(np.clip(2*X[0].astype('int64'),-2**31,2**31-1) == Y[0])
+    assert all(np.clip(2*X[1],-2**15,2**15-1) == (Y[1]&0xffff).astype('int16'))
+    assert all(np.clip(2*X[2],-2**15,2**15-1) == (Y[2]>>16).astype('int16'))
+    assert all(np.clip(2*X[3].astype('int32'),0,2**8-1)*0x01010101 ==Y[3])
+    assert all(np.clip(2*X[4].astype('int32'),0,2**8-1) == ((Y[4]>> 0)&0xff))
+    assert all(np.clip(2*X[5].astype('int32'),0,2**8-1) == ((Y[5]>> 8)&0xff))
+    assert all(np.clip(2*X[6].astype('int32'),0,2**8-1) == ((Y[6]>>16)&0xff))
+    assert all(np.clip(2*X[7].astype('int32'),0,2**8-1) == ((Y[7]>>24)&0xff))
 
-    assert all(np.clip(X[0],-2**15,2**15-1) == (Y[0]&0xffff).astype('int16'))
-    assert all(np.clip(X[1],-2**15,2**15-1) == (Y[1]>>16).astype('int16'))
-    assert all(np.clip(X[2],0,2**8-1).astype('uint32')*0x01010101 == Y[2])
-    assert all(np.clip(X[3],0,2**8-1) == ((Y[3]>> 0)&0xff).astype('uint8'))
-    assert all(np.clip(X[4],0,2**8-1) == ((Y[4]>> 8)&0xff).astype('uint8'))
-    assert all(np.clip(X[5],0,2**8-1) == ((Y[5]>>16)&0xff).astype('uint8'))
-    assert all(np.clip(X[6],0,2**8-1) == ((Y[6]>>24)&0xff).astype('uint8'))
+@qpucode
+def pack_regA_float(asm):
+    for op in ['nop', '16a', '16b', '16a sat', '16b sat']:
+        mov(ra0, vpm)
+        nop()
+        fadd(ra0.pack(op), ra0, 0.0)
+        nop()
+        mov(vpm, ra0)
+
+def test_pack_regA_float():
+    def to_float16(vec):
+        return np.ndarray(16, 'float16', (vec&0xffff).astype('uint16'))
+
+    F = np.random.randn(5, 16).astype('float32')
+    X = np.ndarray((5, 16), 'uint32', F)
+
+    Y = runcode(pack_regA_float, X)
+
+    assert all(F[0] == np.ndarray(16, 'float32', Y[0]))
+    assert np.allclose(F[1], to_float16(Y[1]>> 0), rtol=1e-3)
+    assert np.allclose(F[2], to_float16(Y[2]>>16), rtol=1e-3)
+    assert np.allclose(F[3], to_float16(Y[3]>> 0), rtol=1e-3)
+    assert np.allclose(F[4], to_float16(Y[4]>>16), rtol=1e-3)
