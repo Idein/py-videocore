@@ -515,6 +515,11 @@ def locate_write_operands(add_dst = REGISTERS['null'], mul_dst = REGISTERS['null
         if mul_dst.pack_bits:
             raise AssembleError('Too many packing')
         pack = add_dst.pack_bits
+    elif mul_dst.pack_bits:
+        if add_dst.pack_bits:
+            raise AssembleError('Too many packing')
+        pack = mul_dst.pack_bits
+        pm = True
 
     if add_dst.spec & _REG_AW and mul_dst.spec & _REG_BW:
         return add_dst.addr, mul_dst.addr, False, pack, pm
