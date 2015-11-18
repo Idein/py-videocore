@@ -85,6 +85,13 @@ _PACK = {
     '8b sat': 13,
     '8c sat': 14,
     '8d sat': 15,
+
+    #--- MUL ALU packing ---
+    'rep 8a mul': 3, # map [0.0, 1.0] to [0, 255] and replicate it 4 times
+    '8a mul': 4,     # map [0.0, 1.0] to [0, 255] and store it to bits [0:8]
+    '8b mul': 5,     # ditto (bits [8:16])
+    '8c mul': 6,     # ditto (bits [16:24])
+    '8d mul': 7,     # ditto (bits [24:32])
     }
 
 class Register(object):
@@ -124,19 +131,17 @@ class Register(object):
     def pack(self, pat):
         if self.name in ['r0', 'r1', 'r2', 'r3']:
             raise AssembleError('Accumulators r0-r3 have no pack functionality')
-        if pat in _PACK:
+        if pat[-3:] != 'mul':
             if not (self.spec & _REG_AW):
                 raise AssembleError('Packing is not supported for the register {}'.format(self))
             spec = _REG_AW
-            pack = _PACK[pat]
             pm   = False
         else:
-            if not (self.spec & (_REG_AW | _REG_BW)):
-                raise AssembleError('Packing is not supported for the register {}'.format(self))
-            spec = self.spec & (_REG_AW | _REG_BW)
-            pack = _PACK[pat]
+            if not (self.spec & _REG_BW):
+                raise AssembleError('MUL ALU Packing is not supported for the register {}'.format(self))
+            spec = _REG_BW
             pm   = True
-
+        pack = _PACK[pat]
         return Register(name = self.name, addr = self.addr, spec = spec, pack = pack, pm = pm)
 
 REGISTERS = {}
