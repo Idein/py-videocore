@@ -11,7 +11,7 @@ thoroughly to study its architecture.
 
 -  `VideoCore(R) IV 3D Architecture Reference Guide
    (PDF) <https://www.broadcom.com/docs/support/videocore/VideoCoreIV-AG100-R.pdf>`__
-   (and `Errata <https://github.com/nineties/py-videocore/blob/master/ERRATA.rst>`__)
+   [#errata]_
 
 As far as I know, modern GPGPU programming environments such as OpenCL
 does not exist for  VideoCore. Assembly programming is the only option at
@@ -74,3 +74,8 @@ License
 
 Code and documentation are released under `MIT
 license <https://github.com/nineties/py-videocore/blob/master/LICENSE>`__
+
+.. rubric:: Footnotes
+
+.. [#errata] `Errata of reference guide
+   <https://github.com/nineties/py-videocore/blob/master/ERRATA.rst>`__
