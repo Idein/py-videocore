@@ -53,11 +53,11 @@ def test_unpack_regA_int():
     assert all(X[0] == Y[0])
     assert all(((X[1]>> 0)&0xffff).astype('int16') == Y[1].astype('int16'))
     assert all(((X[2]>>16)&0xffff).astype('int16') == Y[2].astype('int16'))
-    assert all((((X[3]>>24)&0xff) * 0x01010101) == Y[3])
-    assert all(((X[4]>> 0)&0xff).astype('uint8') == Y[4])
-    assert all(((X[5]>> 8)&0xff).astype('uint8') == Y[5])
-    assert all(((X[6]>>16)&0xff).astype('uint8') == Y[6])
-    assert all(((X[7]>>24)&0xff).astype('uint8') == Y[7])
+    assert all((((X[3]>>24)&0xff)*0x01010101) == Y[3])
+    assert all(((X[4]>> 0)&0xff) == Y[4])
+    assert all(((X[5]>> 8)&0xff) == Y[5])
+    assert all(((X[6]>>16)&0xff) == Y[6])
+    assert all(((X[7]>>24)&0xff) == Y[7])
 
 @qpucode
 def unpack_regA_float(asm):
