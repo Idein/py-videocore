@@ -27,12 +27,12 @@ def hello_world(asm):
 
 with Driver() as drv:
     # Input vectors
-    a    = np.random.random(16).astype('f4')
-    b    = np.random.random(16).astype('f4')
+    a    = np.random.random(16).astype('float32')
+    b    = np.random.random(16).astype('float32')
 
     # Allocate vectors in shared memory for DMA transfer
     inp  = drv.copy(np.r_[a, b])
-    out  = drv.alloc(16, 'f4')
+    out  = drv.alloc(16, 'float32')
 
     # Run the program
     drv.execute(
