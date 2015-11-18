@@ -42,7 +42,6 @@ def unpack_regA_int(asm):
         mov(ra0, vpm)
         nop()
         mov(vpm, ra0.unpack(op))
-        nop()
 
 def test_unpack_regA_int():
     X = np.array(
