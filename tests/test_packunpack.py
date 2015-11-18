@@ -137,3 +137,64 @@ def test_unpack_R4():
     assert np.allclose(((X[4]>> 8)&0xff)/255.0, unpack('16f', Y[4]), rtol=1e-7)
     assert np.allclose(((X[5]>>16)&0xff)/255.0, unpack('16f', Y[5]), rtol=1e-7)
     assert np.allclose(((X[6]>>24)&0xff)/255.0, unpack('16f', Y[6]), rtol=1e-7)
+
+#=============================== Regfile-A Pack ===============================
+
+# packing without saturation
+
+@qpucode
+def pack_regA_int_no_sat(asm):
+    for op in ['nop', '16a', '16b', 'rep 8a', '8a', '8b', '8c', '8d']:
+        mov(ra0.pack(op), vpm)
+        nop()
+        mov(vpm, ra0)
+
+def test_pack_regA_int_no_sat():
+    X = np.array(
+            [getrandbits(32) for i in range(8*16)]
+            ).reshape(8, 16).astype('uint32')
+
+    Y = runcode(pack_regA_int_no_sat, X)
+
+    assert all(X[0] == Y[0])
+    assert all(X[1]&0xffff == (Y[1]>> 0)&0xffff)
+    assert all(X[2]&0xffff == (Y[2]>>16)&0xffff)
+    assert all((X[3]&0xff)*0x01010101 == Y[3])
+    assert all(X[4]&0xff == (Y[4]>> 0)&0xff)
+    assert all(X[5]&0xff == (Y[5]>> 8)&0xff)
+    assert all(X[6]&0xff == (Y[6]>>16)&0xff)
+    assert all(X[7]&0xff == (Y[7]>>24)&0xff)
+
+# packing with saturation
+
+@qpucode
+def pack_regA_int_sat(asm):
+    for op in ['16a sat', '16b sat', 'rep 8a sat', '8a sat', '8b sat',
+               '8c sat', '8d sat']:
+        mov(ra0.pack(op), vpm)
+        nop()
+        mov(vpm, ra0)
+
+def test_pack_regA_int_sat():
+    X = np.array(
+            [getrandbits(32) for i in range(7*16)]
+            ).reshape(7, 16).astype('int32')
+
+    idx = np.random.choice(16, 8)
+    n = len(idx)
+    X[:2, idx] = np.array(
+            [getrandbits(16) for i in range(2*n)]
+            ).reshape(2, n).astype('int16')
+    X[2:, idx] = np.array(
+            [getrandbits(8) for i in range(5*n)]
+            ).reshape(5, n).astype('int8')
+
+    Y = runcode(pack_regA_int_sat, X.astype('uint32'))
+
+    assert all(np.clip(X[0],-2**15,2**15-1) == (Y[0]&0xffff).astype('int16'))
+    assert all(np.clip(X[1],-2**15,2**15-1) == (Y[1]>>16).astype('int16'))
+    assert all(np.clip(X[2],0,2**8-1).astype('uint32')*0x01010101 == Y[2])
+    assert all(np.clip(X[3],0,2**8-1) == ((Y[3]>> 0)&0xff).astype('uint8'))
+    assert all(np.clip(X[4],0,2**8-1) == ((Y[4]>> 8)&0xff).astype('uint8'))
+    assert all(np.clip(X[5],0,2**8-1) == ((Y[5]>>16)&0xff).astype('uint8'))
+    assert all(np.clip(X[6],0,2**8-1) == ((Y[6]>>24)&0xff).astype('uint8'))
