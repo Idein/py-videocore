@@ -12,7 +12,7 @@ thoroughly to understand its architecture.
 -  `VideoCore(R) IV 3D Architecture Reference Guide
    (PDF) <https://www.broadcom.com/docs/support/videocore/VideoCoreIV-AG100-R.pdf>`__
 
-As far as we know, modern GPGPU programming environments such as OpenCL
+As far as I know, modern GPGPU programming environments such as OpenCL
 does not exist for  VideoCore. Assembly programming is the only option at
 this moment and several QPU assemblers written by pioneers
 (`hermanhermitage <https://github.com/hermanhermitage/videocoreiv-qpu/blob/master/qpu-tutorial/qpuasm.md>`__,
@@ -21,7 +21,7 @@ this moment and several QPU assemblers written by pioneers
 and so on) are available.
 
 PyVideoCore's QPU assembler is different from theirs in terms of that
-our assembly language is implemented as an **Internal DSL** of Python
+its assembly language is implemented as an **Internal DSL** of Python
 language. This makes GPGPU programming on Raspberry Pi relatively easier
 in the sense that
 
