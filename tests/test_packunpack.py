@@ -37,19 +37,19 @@ def runcode(code, X):
 #============================== Regfile-A Unpack ==============================
 
 @qpucode
-def unpack_rega_int(asm):
+def unpack_regA_int(asm):
     for op in ['nop', '16a', '16b', 'rep 8d', '8a', '8b', '8c', '8d']:
         mov(ra0, vpm)
         nop()
         mov(vpm, ra0.unpack(op))
         nop()
 
-def test_unpack_rega_int():
+def test_unpack_regA_int():
     X = np.array(
             [getrandbits(32) for i in range(8*16)]
             ).reshape(8, 16).astype('uint32')
 
-    Y = runcode(unpack_rega_int, X)
+    Y = runcode(unpack_regA_int, X)
 
     assert all(X[0] == Y[0])
     assert all(((X[1]>> 0)&0xffff).astype('int16') == Y[1].astype('int16'))
@@ -61,14 +61,14 @@ def test_unpack_rega_int():
     assert all(((X[7]>>24)&0xff).astype('uint8') == Y[7])
 
 @qpucode
-def unpack_rega_float(asm):
+def unpack_regA_float(asm):
     for op in ['nop', '16a', '16b', '8a', '8b', '8c', '8d']:
         mov(ra0, vpm)
         nop()
         fadd(vpm, ra0.unpack(op), 0.0)
         nop()
 
-def test_unpack_rega_float():
+def test_unpack_regA_float():
     F = np.random.randn(16)
 
     X = np.zeros((7, 16), dtype='uint32')
@@ -78,7 +78,7 @@ def test_unpack_rega_float():
     X[2] <<= 16
     X[3:7] = np.array([getrandbits(32) for i in range(4*16)]).reshape(4, 16)
 
-    Y = runcode(unpack_rega_float, X)
+    Y = runcode(unpack_regA_float, X)
 
     assert all(X[0] == Y[0])
     assert np.allclose(F, unpack('16f', Y[1]), rtol=1e-3)
