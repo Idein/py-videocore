@@ -35,6 +35,7 @@ Requirements
 ------------
 
 -  Python 2.7
+-  NumPy
 -  nose (if you want to run tests)
 
 Installation
