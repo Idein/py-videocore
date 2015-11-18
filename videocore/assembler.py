@@ -56,18 +56,25 @@ _UNPACK = {
     }
 
 # Encoding of regfile-a pack and MUL ALU Pack. Its usage is similar to
-# Register.unpack method.
+# Register.unpack method like this.
+#
+# >> mov(ra0.pack('16b'), rb0)
+#
+# This instruction reads contents of rb0 (32 bits times 16 SIMD elements) then
+# writes their lower 16 bits to uppwer 16 bits of ra0.
+# Packing with ' sat' performs packing of 32 bit signed integer with
+# saturation.
 _PACK = {
     'nop': 0,
 
     #--- packing without saturation (just take lower bits) ---
-    '16a': 1,       # float32 to float16 or int32 to int16 (bits [0:16])
-    '16b': 2,       # ditto (bits [16:32])
-    'rep 8a': 3,    # replicate LS byte 4 times.
-    '8a': 4,        # to uint8 with no saturation (bits [0:8])
-    '8b': 5,        # ditto (bits [8:16])
-    '8c': 6,        # ditto (bits [16:24])
-    '8d': 7,        # ditto (bits [24:32])
+    '16a': 1,    # float32 to float16 or int32 to int16 (bits [0:16])
+    '16b': 2,    # ditto (bits [16:32])
+    'rep 8a': 3, # replicate LS byte 4 times.
+    '8a': 4,     # to uint8 with no saturation (bits [0:8])
+    '8b': 5,     # ditto (bits [8:16])
+    '8c': 6,     # ditto (bits [16:24])
+    '8d': 7,     # ditto (bits [24:32])
 
     #--- packing with saturation ---
     '32 sat': 8,
