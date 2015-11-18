@@ -544,8 +544,8 @@ class MulInsnEmitter(object):
 
     def assemble(self, op_mul,
             mul_dst  = REGISTERS['null'],
-            mul_opd1 = REGISTERS['null'],
-            mul_opd2 = REGISTERS['null'],
+            mul_opd1 = REGISTERS['r0'],
+            mul_opd2 = REGISTERS['r0'],
             rotate   = 0
             ):
         add_a, add_b, mul_a, mul_b, raddr_a, raddr_b, immed, unpack, read_pm =\
@@ -672,8 +672,8 @@ class Assembler(object):
 
     def add_insn(self, name, opcode, 
             dst  = REGISTERS['null'], # destination opdister
-            opd1 = REGISTERS['null'], # operand 1
-            opd2 = REGISTERS['null'], # operand 2
+            opd1 = REGISTERS['r0'],   # operand 1
+            opd2 = REGISTERS['r0'],   # operand 2
             sig  = 'no signal',
             set_flags = True          # if True Z,N,C flags will be set
             ):
