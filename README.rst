@@ -1,7 +1,7 @@
 PyVideoCore
 ===========
 
-*This is work in progress project*
+*This is work in progress project.*
 
 PyVideoCore is a Python library for GPGPU on Raspberry Pi boards. The
 Raspberry Pi SoC integrates **Broadcom VideoCore IV** graphics core. It
@@ -13,7 +13,7 @@ thoroughly to understand its architecture.
    (PDF) <https://www.broadcom.com/docs/support/videocore/VideoCoreIV-AG100-R.pdf>`__
 
 As far as we know, modern GPGPU programming environments such as OpenCL
-do not support VideoCore. Assembly programming is the only option at
+does not exist for  VideoCore. Assembly programming is the only option at
 this moment and several QPU assemblers written by pioneers
 (`hermanhermitage <https://github.com/hermanhermitage/videocoreiv-qpu/blob/master/qpu-tutorial/qpuasm.md>`__,
 `petewarden <https://github.com/jetpacapp/qpu-asm>`__,
