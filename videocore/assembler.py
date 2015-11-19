@@ -903,7 +903,7 @@ for name in _MUL_INSN:
         setattr(Assembler, name, _partialmethod(Assembler.mul_insn, name))
         INSTRUCTION_ALIASES.append(name)
 
-for name, code in _BRANCH_INSN:
+for name, code in _BRANCH_INSN.items():
     setattr(Assembler, name, _partialmethod(Assembler.branch_insn, code))
     INSTRUCTION_ALIASES.append(name)
 
