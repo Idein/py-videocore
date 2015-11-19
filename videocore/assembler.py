@@ -245,10 +245,12 @@ class Insn(Structure):
     'Instruction encoding.'
 
     def to_bytes(self):
+        'Encode instruction to string.'
         return string_at(byref(self), sizeof(self))
 
     @classmethod
     def from_bytes(self, buf):
+        'Decode string (or buffer object of length 64 bit) to instruction.'
         bytes, = unpack('Q', buf)
         sig = bytes >> 60
         if sig == _SIGNAL['branch']:
