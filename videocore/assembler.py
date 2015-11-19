@@ -67,7 +67,7 @@ class Register(object):
         self.unpack_bits = unpack
         self.pm_bit = pm
 
-    def __str__(self):
+    def __repr__(self):
         return self.name
 
     def pack(self, op):
@@ -260,6 +260,15 @@ class Insn(Structure):
                 return LoadInsn.from_buffer_copy(buf)
         else:
             return AluInsn.from_buffer_copy(buf)
+
+    def __str__(self):
+        return (
+            self.__class__.__name__ + '(' +
+            ', '.join(
+                f + '=' + hex(getattr(self, f))
+                for f, _, _ in reversed(self._fields_)
+                ) +
+            ')')
 
 class AluInsn(Insn):
     _fields_ = [
