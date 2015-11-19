@@ -279,6 +279,12 @@ _SMALL_IMMED = {
     )}
 _SMALL_IMMED['0.0'] = 0     # 0.0 and 0 have same code
 
+
+# Input multiplexers.
+_INPUT_MUXES = {
+    'r0': 0, 'r1': 1, 'r2': 2, 'r3': 3, 'r4': 4, 'r5': 5, 'A': 6, 'B': 7
+    }
+
 class Insn(Structure):
     'Instruction encoding.'
 
@@ -347,10 +353,6 @@ class SemaInsn(Insn):
         ('waddr_add', 6), ('ws', 1), ('sf', 1), ('cond_mul', 3),
         ('cond_add', 3), ('pack', 4), ('pm', 1), ('unpack', 3), ('sig', 4)
         ]]
-
-ACCUMURATOR_CODES =  {'r0': 0, 'r1': 1, 'r2': 2, 'r3': 3, 'r4': 4, 'r5': 5}
-INPUT_MUX_REGFILE_A = 6
-INPUT_MUX_REGFILE_B = 7
 
 def locate_read_operands(add1 = REGISTERS['r0'], add2 = REGISTERS['r0'],
         mul1 = REGISTERS['r0'], mul2 = REGISTERS['r0']):
@@ -428,8 +430,8 @@ def locate_read_operands(add1 = REGISTERS['r0'], add2 = REGISTERS['r0'],
 
     for i, opd in enumerate(operands):
         # When opd is an accumurator register, raddr_a and raddr_b is not used for it.
-        if isinstance(opd, Register) and opd.name in ACCUMURATOR_CODES:
-            mux[i]  = ACCUMURATOR_CODES[opd.name]
+        if isinstance(opd, Register) and opd.name in ACCUMULATORS:
+            mux[i]  = _INPUT_MUXES[opd.name]
 
     if all(map(lambda x: x is not None, mux)):
         return mux + [REGISTERS['null'].addr]*2 + [False, unpack, pm]
@@ -443,18 +445,18 @@ def locate_read_operands(add1 = REGISTERS['r0'], add2 = REGISTERS['r0'],
             if raddr_b is not None and not (immed and raddr_b == imm_value):
                 raise AssembleError('Too many regfile B operand {}'.format(opd))
             raddr_b = imm_value
-            mux[i]  = INPUT_MUX_REGFILE_B
+            mux[i]  = _INPUT_MUXES['B']
             immed   = True
         elif (opd.spec & _REG_AR) and not (opd.spec & _REG_BR):
             if raddr_a is not None and raddr_a != opd.addr:
                 raise AssembleError('Too many regfile A operand {}'.format(opd))
             raddr_a = opd.addr
-            mux[i]  = INPUT_MUX_REGFILE_A
+            mux[i]  = _INPUT_MUXES['A']
         elif not (opd.spec & _REG_AR) and (opd.spec & _REG_BR):
             if raddr_b is not None and raddr_b != opd.addr:
                 raise AssembleError('Too many regfile B operand {}'.format(opd))
             raddr_b = opd.addr
-            mux[i]  = INPUT_MUX_REGFILE_B
+            mux[i]  = _INPUT_MUXES['B']
 
     # Locate remaining operands.
     for i, opd in enumerate(operands):
@@ -465,10 +467,10 @@ def locate_read_operands(add1 = REGISTERS['r0'], add2 = REGISTERS['r0'],
 
         if raddr_a is None and opd.spec & _REG_AR:
             raddr_a = opd.addr
-            mux[i]  = INPUT_MUX_REGFILE_A
+            mux[i]  = _INPUT_MUXES['A']
         elif raddr_b is None and opd.spec & _REG_BR:
             raddr_b = opd.addr
-            mux[i]  = INPUT_MUX_REGFILE_B
+            mux[i]  = _INPUT_MUXES['B']
         else:
             raise AssembleError('Too many regfile operand {}'.format(opd))
 
