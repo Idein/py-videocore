@@ -241,6 +241,33 @@ _SIGNAL = {
         'branch'
     ])}
 
+# Add ALU instructions
+_ADD_INSN = {
+    name: code
+    for code, name in enumerate([
+        'nop', 'fadd', 'fsub', 'fmin', 'fmax', 'fminabs', 'fmaxabs', 'ftoi',
+        'itof', '', '', '', 'iadd', 'isub', 'shr', 'asr', 'ror', 'shl', 'imin',
+        'imax', 'band', 'bor', 'bxor', 'bnot', 'clz', '', '', '', '', '',
+        'v8adds', 'v8subs'
+    ]) if name
+    }
+
+# Mul ALU instructions
+_MUL_INSN = {
+    name: code
+    for code, name in enumerate([
+        'nop', 'fmul', 'mul24', 'v8muld', 'v8min', 'v8max', 'v8adds', 'v8subs'
+    ])}
+
+# Branch instructions
+_BRANCH_INSN = {
+    name: code
+    for code, name in enumerate([
+        'jz', 'jnz', 'jz_any', 'jnz_any', 'jn', 'jnn', 'jn_any', 'jnn_any',
+        'jc', 'jnc', 'jc_any', 'jnc_any', '', '', '', 'jmp'
+    ]) if name
+    }
+
 class Insn(Structure):
     'Instruction encoding.'
 
@@ -320,16 +347,6 @@ _SMALL_IMMED = {
         [repr(2.0**i) for i in range(-8, 0)] # 1.0/256.0,1.0/128.0,..,1.0/2.0
     )}
 _SMALL_IMMED['0.0'] = 0     # 0.0 and 0 have same code
-
-ADD_INSTRUCTIONS = ['nop', 'fadd', 'fsub', 'fmin', 'fmax', 'fminabs', 'fmaxabs', 'ftoi', 'itof',
-    '', '', '', 'iadd', 'isub', 'shr', 'asr', 'ror', 'shl', 'imin', 'imax', 'band', 'bor',
-    'bxor', 'bnot', 'clz', '', '', '', '', '', 'v8adds', 'v8subs'
-    ]
-
-MUL_INSTRUCTIONS = ['nop', 'fmul', 'mul24', 'v8muld', 'v8min', 'v8max', 'v8adds', 'v8subs']
-
-BRANCH_INSTRUCTIONS = ['jz', 'jnz', 'jz_any', 'jnz_any', 'jn', 'jnn', 'jn_any', 'jnn_any',
-        'jc', 'jnc', 'jc_any', 'jnc_any', '', '', '', 'jmp']
 
 ACCUMURATOR_CODES =  {'r0': 0, 'r1': 1, 'r2': 2, 'r3': 3, 'r4': 4, 'r5': 5}
 INPUT_MUX_REGFILE_A = 6
@@ -591,8 +608,8 @@ class MulInsnEmitter(object):
             mul_b     = mul_b
             ), increment=False)
 
-for opcode, name in enumerate(MUL_INSTRUCTIONS):
-    setattr(MulInsnEmitter, name, _partialmethod(MulInsnEmitter.assemble, opcode))
+for name, code in _MUL_INSN.items():
+    setattr(MulInsnEmitter, name, _partialmethod(MulInsnEmitter.assemble, code))
 
 class Assembler(object):
     REGISTERS = REGISTERS
@@ -877,20 +894,18 @@ class Assembler(object):
         self.nop()
         self.nop()
 
-for opcode, name in enumerate(ADD_INSTRUCTIONS):
-    if name:
-        setattr(Assembler, name, _partialmethod(Assembler.add_insn, name, opcode))
-        INSTRUCTION_ALIASES.append(name)
+for name, code in _ADD_INSN.items():
+    setattr(Assembler, name, _partialmethod(Assembler.add_insn, name, code))
+    INSTRUCTION_ALIASES.append(name)
 
-for name in MUL_INSTRUCTIONS:
-    if name not in ADD_INSTRUCTIONS:
+for name in _MUL_INSN:
+    if name not in _ADD_INSN:
         setattr(Assembler, name, _partialmethod(Assembler.mul_insn, name))
         INSTRUCTION_ALIASES.append(name)
 
-for cond_br, name in enumerate(BRANCH_INSTRUCTIONS):
-    if name:
-        setattr(Assembler, name, _partialmethod(Assembler.branch_insn, cond_br))
-        INSTRUCTION_ALIASES.append(name)
+for name, code in _BRANCH_INSN:
+    setattr(Assembler, name, _partialmethod(Assembler.branch_insn, code))
+    INSTRUCTION_ALIASES.append(name)
 
 SETUP_ASM_LOCALS = ast.parse(
     '\n'.join(map('{0} = asm.{0}'.format, INSTRUCTION_ALIASES)) + '\n' + 
