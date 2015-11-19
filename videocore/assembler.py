@@ -307,13 +307,16 @@ class SemaInsn(Insn):
         ('sig',       c_ulong, 4)
     ]
 
-# Table from immediate values to its code
-SMALL_IMMEDIATES = {}
-SMALL_IMMEDIATES.update({repr(i): i for i in range(16)})
-SMALL_IMMEDIATES.update({repr(i-16): i+16 for i in range(16)})
-SMALL_IMMEDIATES.update({repr(2.0**i): i+32 for i in range(8)})
-SMALL_IMMEDIATES.update({repr(2.0**(i-8)): i+40 for i in range(8)})
-SMALL_IMMEDIATES['0.0'] = 0 # binary representations of 0 and 0.0 are same
+# Encoding of small immediate values.
+_SMALL_IMMED = {
+    value: code
+    for code, value in enumerate(
+        [repr(i) for i in range(16)] +       # 0,1,2,..,15
+        [repr(i) for i in range(-16, 0)] +   # -16,-15,..,-1
+        [repr(2.0**i) for i in range(8)] +   # 1.0,2.0,..,128.0
+        [repr(2.0**i) for i in range(-8, 0)] # 1.0/256.0,1.0/128.0,..,1.0/2.0
+    )}
+_SMALL_IMMED['0.0'] = 0     # 0.0 and 0 have same code
 
 def pack_small_imm(val):
     """Pack 'val' to 6-bit array for ALU instruction with small immediates.
@@ -332,7 +335,7 @@ def pack_small_imm(val):
     AssembleError: Immediate operand 1.2 is not allowed
     """
 
-    code = SMALL_IMMEDIATES.get(repr(val))
+    code = _SMALL_IMMED.get(repr(val))
     if code is None:
         raise AssembleError('Immediate operand {} is not allowed'.format(val))
     return code
