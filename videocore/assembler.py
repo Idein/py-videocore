@@ -597,7 +597,7 @@ for name, code in _MUL_INSN.items():
 class AddInsnEmitter(Assembler):
     REGISTERS = REGISTERS
 
-    def pack_imm(self, val):
+    def encode_imm(self, val):
         if isinstance(val, float):
             return unpack('L', pack('f', val))[0], 0x0
         elif isinstance(val, (int, long)):
@@ -643,7 +643,7 @@ class AddInsnEmitter(Assembler):
             if not (reg2.spec & _REG_BW):
                 raise AssembleError('{} is not a write register of regfile B'.format(reg2))
 
-        imm, unpack = self.pack_imm(imm)
+        imm, unpack = self.encode_imm(imm)
         self.emit(LoadInsn(sig = 0xE, unpack = unpack, pm = 0, pack = 0, cond_add = 1,
             cond_mul = 1, sf = 0, ws = 0, waddr_add = reg1.addr, waddr_mul = reg2.addr,
             immediate = imm,))
