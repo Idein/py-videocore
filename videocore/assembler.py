@@ -371,61 +371,8 @@ class SemaInsn(Insn):
         ]]
 
 
-
-
 def locate_read_operands(add1 = REGISTERS['r0'], add2 = REGISTERS['r0'],
         mul1 = REGISTERS['r0'], mul2 = REGISTERS['r0']):
-    """Locate read operands of add and mul instructions properly.
-    
-    >>> locate_read_operands()
-    [0, 0, 0, 0, 39, 39, False, 0, 0]
-    >>> locate_read_operands(r1, r2, r3, r4)
-    [1, 2, 3, 4, 39, 39, False, 0, 0]
-    >>> locate_read_operands(ra1, rb6)
-    [6, 7, 0, 0, 1, 6, False, 0, 0]
-    >>> locate_read_operands(rb6, ra1)
-    [7, 6, 0, 0, 1, 6, False, 0, 0]
-    >>> locate_read_operands(r0, ra1, rb2, r3)
-    [0, 6, 7, 3, 1, 2, False, 0, 0]
-    >>> locate_read_operands(ra1, ra1)
-    [6, 6, 0, 0, 1, 39, False, 0, 0]
-    >>> locate_read_operands(rb1, rb1)
-    [7, 7, 0, 0, 39, 1, False, 0, 0]
-    >>> locate_read_operands(ra1, rb1, ra1, rb1)
-    [6, 7, 6, 7, 1, 1, False, 0, 0]
-    >>> locate_read_operands(ra1, 1.0)
-    [6, 7, 0, 0, 1, 32, True, 0, 0]
-    >>> locate_read_operands(r0, 1.0, ra1, 1.0)
-    [0, 7, 6, 7, 1, 32, True, 0, 0]
-    >>> locate_read_operands(ra1, ra2)
-    Traceback (most recent call last):
-    ...
-    AssembleError: Too many regfile A operand ra2
-    >>> locate_read_operands(rb1, rb2)
-    Traceback (most recent call last):
-    ...
-    AssembleError: Too many regfile B operand rb2
-    >>> locate_read_operands(1.0, rb1)
-    Traceback (most recent call last):
-    ...
-    AssembleError: Too many regfile B operand rb1
-    >>> locate_read_operands(ra1.pack('16a'), rb1)
-    Traceback (most recent call last):
-    ...
-    AssembleError: Packing of read operand
-    >>> locate_read_operands(r4.unpack('16a'))
-    [4, 0, 0, 0, 39, 39, False, 1, True]
-    >>> locate_read_operands(ra1, rb1.unpack('16b'))
-    Traceback (most recent call last):
-    ...
-    AssembleError: Unpacking is not supported for the register rb1
-    >>> locate_read_operands(ra1.unpack('16a'), ra1.unpack('16a'))
-    [6, 6, 0, 0, 1, 39, False, 1, False]
-    >>> locate_read_operands(ra1.unpack('16a'), ra1.unpack('16b'))
-    Traceback (most recent call last):
-    ...
-    AssembleError: Multiple unpacking
-    """
 
     operands = [add1, add2, mul1, mul2]
     mux     = [None, None, None, None]
@@ -501,23 +448,6 @@ def locate_read_operands(add1 = REGISTERS['r0'], add2 = REGISTERS['r0'],
     return mux + [raddr_a, raddr_b] + [immed, unpack, pm]
 
 def locate_write_operands(add_dst = REGISTERS['null'], mul_dst = REGISTERS['null']):
-    """Locate write operands of add and mul instructions properly.
-
-    >>> locate_write_operands(ra1, rb2)
-    (1, 2, False, 0, False)
-    >>> locate_write_operands(rb2, ra1)
-    (2, 1, True, 0, False)
-    >>> locate_write_operands(ra1, ra2)
-    Traceback (most recent call last):
-    ...
-    AssembleError: ra1 and ra2 are not proper combination of destination registers
-    >>> locate_write_operands(ra1.pack('16a'))
-    (1, 39, False, 1, False)
-    >>> locate_write_operands(ra1.pack('16a'), rb1.pack('8888 mul'))
-    Traceback (most recent call last):
-    ...
-    AssembleError: Too many packing
-    """
     pack = 0
     pm   = False
     if add_dst.pack_bits:
