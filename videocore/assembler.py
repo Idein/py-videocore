@@ -263,6 +263,16 @@ class Insn(Structure):
         else:
             return AluInsn.from_buffer_copy(buf)
 
+    def __eq__(self, other):
+        return (
+            self.__class__ == other.__class__ and
+            all(getattr(self, f) == getattr(other, f)
+                for f, _, _ in self._fields_)
+            )
+
+    def __ne__(self, other):
+        return not (self == other)
+
     def __repr__(self):
         return (
             self.__class__.__name__ + '(' +
