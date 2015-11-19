@@ -2,6 +2,7 @@
 
 from nose.tools import raises
 from struct import pack
+from copy import deepcopy
 
 import videocore.assembler as A
 from videocore.assembler import REGISTERS, AssembleError 
@@ -68,3 +69,15 @@ def test_insn_repr():
             'waddr_mul=0xcL, op_mul=0x4L, op_add=0x2L, raddr_a=0x21L, '
             'raddr_b=0x35L, add_a=0x4L, add_b=0x7L, mul_a=0x6L, mul_b=0x2L)'
             )
+
+def test_ignore_dontcare():
+    assert repr(SAMPLE_BRANCH_INSN) == (
+            'BranchInsn(sig=0xfL, cond_br=0xdL, rel=0x1L, reg=0x0L, '
+            'raddr_a=0x1bL, ws=0x1L, waddr_add=0x35L, waddr_mul=0xcL, '
+            'immediate=0x12345678L)'
+            )
+    insn1 = deepcopy(SAMPLE_BRANCH_INSN)
+    insn2 = deepcopy(SAMPLE_BRANCH_INSN)
+    insn1.dontcare = 0x1
+    insn2.dontcare = 0x2
+    assert insn1 == insn2
