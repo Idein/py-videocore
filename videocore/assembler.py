@@ -267,23 +267,19 @@ class Insn(Structure):
         return (
             self.__class__ == other.__class__ and
             all(getattr(self, f) == getattr(other, f)
-                for f, _, _ in self._fields_
-                if f != 'dontcare'
-                )
-            )
+                for f, _, _ in self._fields_ if f != 'dontcare'
+                ))
 
     def __ne__(self, other):
         return not (self == other)
 
     def __repr__(self):
-        return (
-            self.__class__.__name__ + '(' +
-            ', '.join(
-                f + '=' + hex(getattr(self, f))
-                for f, _, _ in reversed(self._fields_)
-                if f != 'dontcare'
-                ) +
-            ')')
+        return '{class_name}({fields})'.format(
+            class_name=self.__class__.__name__,
+            fields =', '.join(
+                    f + '=' + hex(getattr(self, f))
+                    for f, _, _ in reversed(self._fields_) if f != 'dontcare'
+                ))
 
 class AluInsn(Insn):
     _fields_ = [ (f, c_ulong, n) for f, n in [
