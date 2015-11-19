@@ -56,6 +56,10 @@ SAMPLE_SEMA_INSN = A.SemaInsn(
     waddr_add=53, waddr_mul=12, sa=1, semaphore=13
     )
 
+def test_equality():
+    assert SAMPLE_ALU_INSN == SAMPLE_ALU_INSN
+    assert SAMPLE_ALU_INSN != SAMPLE_BRANCH_INSN
+
 def test_bytes_convertion():
     for sample_insn in [SAMPLE_ALU_INSN, SAMPLE_BRANCH_INSN,
                         SAMPLE_LOAD_INSN, SAMPLE_SEMA_INSN]:
