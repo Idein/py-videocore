@@ -227,6 +227,49 @@ REGISTERS.update(GENERAL_PURPOSE_REGISTERS)
 REGISTERS.update(IO_REGISTERS)
 REGISTERS.update(ACCUMULATORS)
 
+
+#================================ Instructions ================================
+
+class Insn(Structure):
+    'Instruction encoding.'
+    def to_bytes(self):
+        return string_at(byref(self), sizeof(self))
+
+class AluInsn(Insn):
+    _fields_ = [
+        ('mul_b',     c_ulong, 3), ('mul_a',    c_ulong, 3), ('add_b',     c_ulong, 3),
+        ('add_a',     c_ulong, 3), ('raddr_b',  c_ulong, 6), ('raddr_a',   c_ulong, 6),
+        ('op_add',    c_ulong, 5), ('op_mul',   c_ulong, 3), ('waddr_mul', c_ulong, 6),
+        ('waddr_add', c_ulong, 6), ('ws',       c_ulong, 1), ('sf',        c_ulong, 1),
+        ('cond_mul',  c_ulong, 3), ('cond_add', c_ulong, 3), ('pack',      c_ulong, 4),
+        ('pm',        c_ulong, 1), ('unpack',   c_ulong, 3), ('sig',       c_ulong, 4)
+    ]
+
+class BranchInsn(Insn):
+    _fields_ = [
+        ('immediate', c_ulong, 32), ('waddr_mul', c_ulong, 6), ('waddr_add', c_ulong, 6),
+        ('ws',        c_ulong, 1), ('raddr_a',    c_ulong, 5), ('reg',       c_ulong, 1),
+        ('rel',       c_ulong, 1), ('cond_br',    c_ulong, 4), ('dontcare',  c_ulong, 4),
+        ('sig',       c_ulong, 4)
+    ]
+
+class LoadInsn(Insn):
+    _fields_ = [
+        ('immediate', c_ulong, 32), ('waddr_mul', c_ulong, 6), ('waddr_add', c_ulong, 6),
+        ('ws',        c_ulong, 1), ('sf',         c_ulong, 1), ('cond_mul',  c_ulong, 3),
+        ('cond_add',  c_ulong, 3), ('pack',       c_ulong, 4), ('pm',        c_ulong, 1),
+        ('unpack',    c_ulong, 3), ('sig',        c_ulong, 4)
+    ]
+
+class SemaInsn(Insn):
+    _fields_ = [
+        ('semaphore', c_ulong, 4), ('sa',        c_ulong, 1), ('dontcare',  c_ulong, 27),
+        ('waddr_mul', c_ulong, 6), ('waddr_add', c_ulong, 6), ('ws',        c_ulong, 1),
+        ('sf',        c_ulong, 1), ('cond_mul',  c_ulong, 3), ('cond_add',  c_ulong, 3),
+        ('pack',      c_ulong, 4), ('pm',        c_ulong, 1), ('unpack',    c_ulong, 3),
+        ('sig',       c_ulong, 4)
+    ]
+
 # Table from immediate values to its code
 SMALL_IMMEDIATES = {}
 SMALL_IMMEDIATES.update({repr(i): i for i in range(16)})
@@ -323,45 +366,6 @@ MUL_INSTRUCTIONS = ['nop', 'fmul', 'mul24', 'v8muld', 'v8min', 'v8max', 'v8adds'
 
 BRANCH_INSTRUCTIONS = ['jz', 'jnz', 'jz_any', 'jnz_any', 'jn', 'jnn', 'jn_any', 'jnn_any',
         'jc', 'jnc', 'jc_any', 'jnc_any', '', '', '', 'jmp']
-
-class Insn(Structure):
-    def to_bytes(self):
-        return string_at(byref(self), sizeof(self))
-
-class AluInsn(Insn):
-    _fields_ = [
-        ('mul_b',     c_ulong, 3), ('mul_a',    c_ulong, 3), ('add_b',     c_ulong, 3),
-        ('add_a',     c_ulong, 3), ('raddr_b',  c_ulong, 6), ('raddr_a',   c_ulong, 6),
-        ('op_add',    c_ulong, 5), ('op_mul',   c_ulong, 3), ('waddr_mul', c_ulong, 6),
-        ('waddr_add', c_ulong, 6), ('ws',       c_ulong, 1), ('sf',        c_ulong, 1),
-        ('cond_mul',  c_ulong, 3), ('cond_add', c_ulong, 3), ('pack',      c_ulong, 4),
-        ('pm',        c_ulong, 1), ('unpack',   c_ulong, 3), ('sig',       c_ulong, 4)
-    ]
-
-class BranchInsn(Insn):
-    _fields_ = [
-        ('immediate', c_ulong, 32), ('waddr_mul', c_ulong, 6), ('waddr_add', c_ulong, 6),
-        ('ws',        c_ulong, 1), ('raddr_a',    c_ulong, 5), ('reg',       c_ulong, 1),
-        ('rel',       c_ulong, 1), ('cond_br',    c_ulong, 4), ('dontcare',  c_ulong, 4),
-        ('sig',       c_ulong, 4)
-    ]
-
-class LoadInsn(Insn):
-    _fields_ = [
-        ('immediate', c_ulong, 32), ('waddr_mul', c_ulong, 6), ('waddr_add', c_ulong, 6),
-        ('ws',        c_ulong, 1), ('sf',         c_ulong, 1), ('cond_mul',  c_ulong, 3),
-        ('cond_add',  c_ulong, 3), ('pack',       c_ulong, 4), ('pm',        c_ulong, 1),
-        ('unpack',    c_ulong, 3), ('sig',        c_ulong, 4)
-    ]
-
-class SemaInsn(Insn):
-    _fields_ = [
-        ('semaphore', c_ulong, 4), ('sa',        c_ulong, 1), ('dontcare',  c_ulong, 27),
-        ('waddr_mul', c_ulong, 6), ('waddr_add', c_ulong, 6), ('ws',        c_ulong, 1),
-        ('sf',        c_ulong, 1), ('cond_mul',  c_ulong, 3), ('cond_add',  c_ulong, 3),
-        ('pack',      c_ulong, 4), ('pm',        c_ulong, 1), ('unpack',    c_ulong, 3),
-        ('sig',       c_ulong, 4)
-    ]
 
 SIGNALING_BITS = {
     'breakpoint'                : 0,
