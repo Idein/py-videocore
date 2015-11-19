@@ -82,10 +82,36 @@ _SMALL_IMMED['0.0'] = 0     # 0.0 and 0 have same code
 
 
 # Input multiplexers.
+# 'A' specifies raddr_a. 'B' specifies raddr_b.
 _INPUT_MUXES = {
     'r0': 0, 'r1': 1, 'r2': 2, 'r3': 3, 'r4': 4, 'r5': 5, 'A': 6, 'B': 7
     }
 
+# Packing. See Register.pack.
+_PACK = {
+    op: code for code, op in enumerate([
+        'nop', '16a', '16b', 'rep 8', '8a', '8b', '8c', '8d', '32 sat',
+        '16a sat', '16b sat', 'rep 8 sat', '8a sat', '8b sat', '8c sat',
+        '8d sat'
+        ])
+    }
+
+# Unpacking. See Register.unpack.
+_UNPACK = {
+    op: code for code, op in enumerate([
+        'nop', '16a', '16b', 'rep 8d', '8a', '8b', '8c', '8d'
+        ])
+    }
+
+# Mul ALU packing. See MulInsnEmitter.assemble.
+_MUL_PACK = {
+    'nop': 0,
+    'rep 8 mul': 3,
+    '8a mul': 4 ,
+    '8b mul': 5,
+    '8c mul': 6,
+    '8d mul': 7
+    }
 
 #=================================== Register =================================
 
@@ -95,22 +121,6 @@ _REG_AR = 1 << 3   # Regfile A read location
 _REG_BR = 1 << 2   # Regfile B read location
 _REG_AW = 1 << 1   # Regfile A write location
 _REG_BW = 1 << 0   # Regfile B write location
-
-# See Register.unpack.
-_UNPACK = {
-    op: code for code, op in enumerate([
-        'nop', '16a', '16b', 'rep 8d', '8a', '8b', '8c', '8d'
-        ])
-    }
-
-# See Register.pack.
-_PACK = {
-    op: code for code, op in enumerate([
-        'nop', '16a', '16b', 'rep 8', '8a', '8b', '8c', '8d', '32 sat',
-        '16a sat', '16b sat', 'rep 8 sat', '8a sat', '8b sat', '8c sat',
-        '8d sat'
-        ])
-    }
 
 class Register(object):
     """QPU Registers.
@@ -360,6 +370,9 @@ class SemaInsn(Insn):
         ('cond_add', 3), ('pack', 4), ('pm', 1), ('unpack', 3), ('sig', 4)
         ]]
 
+
+
+
 def locate_read_operands(add1 = REGISTERS['r0'], add2 = REGISTERS['r0'],
         mul1 = REGISTERS['r0'], mul2 = REGISTERS['r0']):
     """Locate read operands of add and mul instructions properly.
@@ -527,15 +540,6 @@ INSTRUCTION_ALIASES = []
 def syntax_sugar(f):
     INSTRUCTION_ALIASES.append(f.__name__)
     return f
-
-_MUL_PACK = {
-    'nop': 0,
-    'rep 8 mul': 3,
-    '8a mul': 4 ,
-    '8b mul': 5,
-    '8c mul': 6,
-    '8d mul': 7
-    }
 
 class MulInsnEmitter(object):
     def __init__(self, asm, op_add, add_dst, add_opd1, add_opd2, sig, set_flags):
