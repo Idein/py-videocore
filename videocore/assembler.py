@@ -151,66 +151,81 @@ class Register(object):
 
         return Register(self.name, self.addr, spec, unpack=_UNPACK[op], pm=pm)
 
+# Table of registers
+
+# There are 32 general purpose registers in each regfile A and B.
+GENERAL_PURPOSE_REGISTERS = {
+    name: Register(
+        name, addr,
+        {'a': _REG_AR|_REG_AW,'b': _REG_BR|_REG_BW}[regfile]
+        )
+    for regfile in ['a', 'b']
+    for addr in range(32)
+    for name in ['r' + regfile + str(addr)]
+    }
+
+IO_REGISTERS = {
+    name: Register(name, addr, spec)
+    for name, addr, spec in [
+        ('uniform'           , 32 , _REG_AR|_REG_BR),
+        ('varying_read'      , 35 , _REG_AR|_REG_BR),
+        ('tmu_noswap'        , 36 , _REG_AW|_REG_BW),
+        ('host_interrupt'    , 38 , _REG_AW|_REG_BW),
+        ('element_number'    , 38 , _REG_AR),
+        ('qpu_number'        , 38 , _REG_BR),
+        ('null'              , 39 , _REG_AR|_REG_BR|_REG_AW|_REG_BW),
+        ('uniforms_address'  , 40 , _REG_AW|_REG_BW),
+        ('x_pixel_coord'     , 41 , _REG_AR),
+        ('y_pixel_coord'     , 41 , _REG_BR),
+        ('quad_x'            , 41 , _REG_AW),
+        ('quad_y'            , 41 , _REG_BW),
+        ('ms_flags'          , 42 , _REG_AR|_REG_AW),
+        ('rev_flag'          , 42 , _REG_BR|_REG_BW),
+        ('tlb_stencil_setup' , 43 , _REG_AW|_REG_BW),
+        ('tlb_z'             , 44 , _REG_AW|_REG_BW),
+        ('tlb_color_ms'      , 45 , _REG_AW|_REG_BW),
+        ('tlb_color_all'     , 46 , _REG_AW|_REG_BW),
+        ('tlb_alpha_mask'    , 47 , _REG_AW|_REG_BW),
+        ('vpm'               , 48 , _REG_AR|_REG_BR|_REG_AW|_REG_BW),
+        ('vpm_ld_busy'       , 49 , _REG_AR),
+        ('vpm_st_busy'       , 49 , _REG_BR),
+        ('vpmvcd_rd_setup'   , 49 , _REG_AW),
+        ('vpmvcd_wr_setup'   , 49 , _REG_BW),
+        ('vpm_ld_wait'       , 50 , _REG_AR),
+        ('vpm_st_wait'       , 50 , _REG_BR),
+        ('vpm_ld_addr'       , 50 , _REG_AW),
+        ('vpm_st_addr'       , 50 , _REG_BW),
+        ('mutex_acquire'     , 51 , _REG_AR|_REG_BR),
+        ('mutex_release'     , 51 , _REG_AW|_REG_BW),
+        ('sfu_recip'         , 52 , _REG_AW|_REG_BW),
+        ('sfu_recipsqrt'     , 53 , _REG_AW|_REG_BW),
+        ('sfu_exp'           , 54 , _REG_AW|_REG_BW),
+        ('sfu_log'           , 55 , _REG_AW|_REG_BW),
+        ('tmu0_s'            , 56 , _REG_AW|_REG_BW),
+        ('tmu0_t'            , 57 , _REG_AW|_REG_BW),
+        ('tmu0_r'            , 58 , _REG_AW|_REG_BW),
+        ('tmu0_b'            , 59 , _REG_AW|_REG_BW),
+        ('tmu1_s'            , 60 , _REG_AW|_REG_BW),
+        ('tmu1_t'            , 61 , _REG_AW|_REG_BW),
+        ('tmu1_r'            , 62 , _REG_AW|_REG_BW),
+        ('tmu1_b'            , 63 , _REG_AW|_REG_BW)
+    ]}
+
+ACCUMULATORS = {
+    name: Register(name, addr, spec)
+    for name, addr, spec in [
+        ('r0', 32, _REG_AW|_REG_BW),
+        ('r1', 33, _REG_AW|_REG_BW),
+        ('r2', 34, _REG_AW|_REG_BW),
+        ('r3', 35, _REG_AW|_REG_BW),
+        ('r4', -1, 0),
+        ('r5', 37, _REG_AW|_REG_BW),
+    ]}
+
 REGISTERS = {}
-
-# General purpose registers
-REGISTERS.update({
-    'r'+file+str(addr): Register('r'+file+str(addr), addr, {'a':0xA,'b':0x5}[file])
-    for file in ['a', 'b'] for addr in range(64)
-    })
-
-# Register file I/O
-REGISTERS.update({
-    name: Register(name, addr, spec) for name, addr, spec in [
-    ('uniform'           , 32 , 0xC),
-    ('r0'                , 32 , 0x3),
-    ('r1'                , 33 , 0x3),
-    ('r2'                , 34 , 0x3),
-    ('r3'                , 35 , 0x3),
-    ('r4'                , 36 , 0x0),
-    ('r5'                , 37 , 0x3),
-    ('varying_read'      , 35 , 0xC),
-    ('tmu_noswap'        , 36 , 0x3),
-    ('host_interrupt'    , 38 , 0x3),
-    ('element_number'    , 38 , 0x8),
-    ('qpu_number'        , 38 , 0x4),
-    ('null'              , 39 , 0xF),
-    ('uniforms_address'  , 40 , 0x3),
-    ('x_pixel_coord'     , 41 , 0x8),
-    ('y_pixel_coord'     , 41 , 0x4),
-    ('quad_x'            , 41 , 0x2),
-    ('quad_y'            , 41 , 0x1),
-    ('ms_flags'          , 42 , 0xA),
-    ('rev_flag'          , 42 , 0x5),
-    ('tlb_stencil_setup' , 43 , 0x3),
-    ('tlb_z'             , 44 , 0x3),
-    ('tlb_color_ms'      , 45 , 0x3),
-    ('tlb_color_all'     , 46 , 0x3),
-    ('tlb_alpha_mask'    , 47 , 0x3),
-    ('vpm'               , 48 , 0xF),
-    ('vpm_ld_busy'       , 49 , 0x8),
-    ('vpm_st_busy'       , 49 , 0x4),
-    ('vpmvcd_rd_setup'   , 49 , 0x2),
-    ('vpmvcd_wr_setup'   , 49 , 0x1),
-    ('vpm_ld_wait'       , 50 , 0x8),
-    ('vpm_st_wait'       , 50 , 0x4),
-    ('vpm_ld_addr'       , 50 , 0x2),
-    ('vpm_st_addr'       , 50 , 0x1),
-    ('mutex_acquire'     , 51 , 0xC),
-    ('mutex_release'     , 51 , 0x3),
-    ('sfu_recip'         , 52 , 0x3),
-    ('sfu_recipsqrt'     , 53 , 0x3),
-    ('sfu_exp'           , 54 , 0x3),
-    ('sfu_log'           , 55 , 0x3),
-    ('tmu0_s'            , 56 , 0x3),
-    ('tmu0_t'            , 57 , 0x3),
-    ('tmu0_r'            , 58 , 0x3),
-    ('tmu0_b'            , 59 , 0x3),
-    ('tmu1_s'            , 60 , 0x3),
-    ('tmu1_t'            , 61 , 0x3),
-    ('tmu1_r'            , 62 , 0x3),
-    ('tmu1_b'            , 63 , 0x3)
-]})
+REGISTERS.update(GENERAL_PURPOSE_REGISTERS)
+REGISTERS.update(IO_REGISTERS)
+REGISTERS.update(ACCUMULATORS)
 
 # Table from immediate values to its code
 SMALL_IMMEDIATES = {}
