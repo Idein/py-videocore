@@ -267,7 +267,9 @@ class Insn(Structure):
         return (
             self.__class__ == other.__class__ and
             all(getattr(self, f) == getattr(other, f)
-                for f, _, _ in self._fields_)
+                for f, _, _ in self._fields_
+                if f != 'dontcare'
+                )
             )
 
     def __ne__(self, other):
@@ -279,6 +281,7 @@ class Insn(Structure):
             ', '.join(
                 f + '=' + hex(getattr(self, f))
                 for f, _, _ in reversed(self._fields_)
+                if f != 'dontcare'
                 ) +
             ')')
 
