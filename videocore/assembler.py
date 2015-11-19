@@ -28,7 +28,7 @@ class AssembleError(Exception):
     'Exception related to QPU assembler'
 
 
-#================================= QPU Register ===============================
+#=================================== Register =================================
 
 # Flags to specify locations of registers.
 _REG_AR = 1 << 3   # Regfile A read location
