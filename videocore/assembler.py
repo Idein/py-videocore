@@ -268,6 +268,17 @@ _BRANCH_INSN = {
     ]) if name
     }
 
+# Encoding of small immediate values.
+_SMALL_IMMED = {
+    value: code
+    for code, value in enumerate(
+        [repr(i) for i in range(16)] +       # 0,1,2,..,15
+        [repr(i) for i in range(-16, 0)] +   # -16,-15,..,-1
+        [repr(2.0**i) for i in range(8)] +   # 1.0,2.0,..,128.0
+        [repr(2.0**i) for i in range(-8, 0)] # 1.0/256.0,1.0/128.0,..,1.0/2.0
+    )}
+_SMALL_IMMED['0.0'] = 0     # 0.0 and 0 have same code
+
 class Insn(Structure):
     'Instruction encoding.'
 
@@ -336,17 +347,6 @@ class SemaInsn(Insn):
         ('waddr_add', 6), ('ws', 1), ('sf', 1), ('cond_mul', 3),
         ('cond_add', 3), ('pack', 4), ('pm', 1), ('unpack', 3), ('sig', 4)
         ]]
-
-# Encoding of small immediate values.
-_SMALL_IMMED = {
-    value: code
-    for code, value in enumerate(
-        [repr(i) for i in range(16)] +       # 0,1,2,..,15
-        [repr(i) for i in range(-16, 0)] +   # -16,-15,..,-1
-        [repr(2.0**i) for i in range(8)] +   # 1.0,2.0,..,128.0
-        [repr(2.0**i) for i in range(-8, 0)] # 1.0/256.0,1.0/128.0,..,1.0/2.0
-    )}
-_SMALL_IMMED['0.0'] = 0     # 0.0 and 0 have same code
 
 ACCUMURATOR_CODES =  {'r0': 0, 'r1': 1, 'r2': 2, 'r3': 3, 'r4': 4, 'r5': 5}
 INPUT_MUX_REGFILE_A = 6
