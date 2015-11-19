@@ -30,35 +30,20 @@ class AssembleError(Exception):
 
 #================================= QPU Register ===============================
 
-# Constants related to QPU registers.
-_REG_AR = 1 << 3   # can be used as regfile A read register
-_REG_BR = 1 << 2   # ditto
-_REG_AW = 1 << 1   # ditto
-_REG_BW = 1 << 0   # ditto
+# Flags to specify locations of registers.
+_REG_AR = 1 << 3   # Regfile A read location
+_REG_BR = 1 << 2   # Regfile B read location
+_REG_AW = 1 << 1   # Regfile A write location
+_REG_BW = 1 << 0   # Regfile B write location
 
-# Encoding of regfile-a unpack and R4 unpack. Call Register.unpack method
-# with one of keys of _UNPACK like this.
-#
-# >> iadd(r0, ra1.unpack('16a'), rb0)
-#
-# The assembler generates an instruction for this code that unpacks the lower
-# 16 bits of ra1 from signed int16 to signed int32 before the addition.
-# See table 6 and 8 of the reference guide for details.
+# See Register.unpack.
 _UNPACK = {
-    'nop': 0,
-    '16a': 1,    # float16 to float32 or int16 to int32 (bits [0:16])
-    '16b': 2,    # ditto (bits [16:32])
-    'rep 8d': 3, # replicate MS byte 4 times.
-    '8a': 4,     # map [0, 255] to [0.0, 1.0] or uint8 to int32 (bits [0:8])
-    '8b': 5,     # ditto (bits [8:16])
-    '8c': 6,     # ditto (bits [16:24])
-    '8d': 7      # ditto (bits [24:32])
+    op: code for code, op in enumerate([
+        'nop', '16a', '16b', 'rep 8d', '8a', '8b', '8c', '8d'
+        ])
     }
 
-# Encoding of regfile-a pack and MUL ALU Pack. Its usage is similar to
-# Register.unpack method like this.
-#
-# >> mov(ra0.pack('16b'), rb0)
+# See Register.pack.
 #
 # This instruction reads contents of rb0 (32 bits times 16 SIMD elements) then
 # writes their lower 16 bits to uppwer 16 bits of ra0.
@@ -95,54 +80,107 @@ _PACK = {
     }
 
 class Register(object):
-    """Registers.
+    """QPU Registers.
 
-    This class implements QPU registers.
-    'spec' is bitwise-or of following flags:
-    - 0x8: can be used as a read register in bank A
-    - 0x4: can be used as a read register in bank B
-    - 0x2: can be used as a write register in bank A
-    - 0x1: can be used as a write register in bank B
+    This class implements general purpuse registers, register mapped I/O
+    locations and accumulators.
     """
 
-    def __init__(self, name, addr, spec, pack = 0, unpack = 0, pm = False):
-        self.name        = name
-        self.addr        = addr
-        self.spec        = spec
-        self.pack_bits   = pack
+    def __init__(self, name, addr, spec, pack=0, unpack=0, pm=False):
+        self.name = name
+        self.addr = addr
+        self.spec = spec
+        self.pack_bits = pack
         self.unpack_bits = unpack
-        self.pm_bits     = pm
+        self.pm_bit = pm
 
     def __str__(self):
         return self.name
 
-    def unpack(self, pat):
-        if self.name in ['r0', 'r1', 'r2', 'r3']:
-            raise AssembleError('Accumulators r0-r3 have no unpack functionality')
-        if self.name == 'r4':
-            spec = _REG_AR | _REG_BR
-        else:
-            if not (self.spec & _REG_AR):
-                raise AssembleError('Unpacking is not supported for the register {}'.format(self))
-            spec = _REG_AR # packing can be used for regfile A read registers.
-        return Register(name = self.name, addr = self.addr, spec = spec,
-                unpack = _UNPACK[pat], pm = self.name == 'r4')
+    def unpack(self, op):
+        """Regfile-A unpack and r4 unpack.
 
-    def pack(self, pat):
-        if self.name in ['r0', 'r1', 'r2', 'r3']:
-            raise AssembleError('Accumulators r0-r3 have no pack functionality')
-        if pat[-3:] != 'mul':
-            if not (self.spec & _REG_AW):
-                raise AssembleError('Packing is not supported for the register {}'.format(self))
-            spec = _REG_AW
-            pm   = False
+        Call in read locations like this.
+
+        >>> iadd(r0, ra0.unpack('16a'), rb0)
+
+        In case of this example, QPU converts int16, lower 16 bits of ra1, to
+        int32 before the addition.  The numbers and characters (abcd) in
+        operation codes indicate bits of registers to be converted.  'a' is for
+        the least bits and 'd' for the highest.
+
+        :param op: One of the following strings to indicate unpack operation.
+            * 'nop': no operation
+            * '16a', '16b':
+                Convert float16 to float32 for floating-point arithmetic, int16
+                to int32 for others.
+            * '8a', '8b', '8c', '8d':
+                Convert uint8 to float32 in range [0.0, 1.0] for floating-point
+                arithmetic, uint8 to int32 for others.
+            * 'rep 8d':
+                Replicate MS byte 4 times accores word.
+
+        See section 3 of the reference guide for details.
+        """
+
+        if self.name != 'r4' and not (self.spec & _REG_AR):
+            raise AssembleError(
+                'Unpacking is only available for regfile-A read locations'
+                ' and accumulator r4'
+                )
+
+        if self.name == 'r4':
+            spec = self.spec
+            pm = 1
         else:
-            if not (self.spec & _REG_BW):
-                raise AssembleError('MUL ALU Packing is not supported for the register {}'.format(self))
-            spec = _REG_BW
-            pm   = True
-        pack = _PACK[pat]
-        return Register(name = self.name, addr = self.addr, spec = spec, pack = pack, pm = pm)
+            spec = _REG_AR
+            pm = 0
+
+        return Register(self.name, self.addr, spec, unpack=_UNPACK[op], pm=pm)
+
+    def pack(self, op):
+        """Regfile-A pack.
+
+        Call in write locations like this.
+
+        >>> iadd(ra1.pack('16a'), ra0, rb0)
+
+        In case of this example, QPU converts the result of ra0 + rb0 to int16
+        then stores it to lower 16 bits of ra1.  The numbers and characters
+        (abcd) in operation codes specifies location of registers where the
+        packed bits to be stored. 'a' is for the least bits and 'd' for the
+        highest.
+
+        Operation codes with 'sat' suffix instruct to perform *saturation
+        arithmetic*.
+
+        :param op: One of the following strings to specify unpack operation.
+            * 'nop': no operation
+            * '16a', '16b':
+                Convert float32 to float16 for floating-point arithmetic, int32
+                to int16 for others.
+            * '8a', '8b', '8c', '8d':
+                Convert int32 to uint8.
+            * 'rep 8':
+                Convert int32 to uint8 then replicate it 4 times accross word.
+            * '32 sat', '16a sat', '16b sat', 'rep 8 sat', '8a sat', '8b sat',
+              '8c sat', '8d sat7:
+                Saturation arithmetic version of former codes.
+
+        See section 3 of the reference guide for details.
+        """
+
+        if (self.name in ['r0', 'r1', 'r2', 'r3', 'r4', 'r5'] or
+            not (self.spec & _REG_AW)):
+            raise AssembleError(
+                'Packing is only available for regfile-A write locations'
+                )
+
+        return Register(self.name, self.addr, _REG_AW, pack=_PACK[op], pm=0)
+
+
+# * 'rep 8 mul', '8a mul', '8b mul', '8c mul', '8d mul':
+#     Convert float32 in range [0.0, 1.0] to uint8.
 
 REGISTERS = {}
 
@@ -436,7 +474,7 @@ def locate_read_operands(add1 = REGISTERS['r0'], add2 = REGISTERS['r0'],
             if unpack != 0 and opd.unpack_bits != unpack:
                 raise AssembleError('Multiple unpacking')
             unpack = opd.unpack_bits
-            pm     = opd.pm_bits
+            pm     = opd.pm_bit
 
     for i, opd in enumerate(operands):
         # When opd is an accumurator register, raddr_a and raddr_b is not used for it.
