@@ -273,39 +273,33 @@ class Insn(Structure):
             ')')
 
 class AluInsn(Insn):
-    _fields_ = [
-        ('mul_b',     c_ulong, 3), ('mul_a',    c_ulong, 3), ('add_b',     c_ulong, 3),
-        ('add_a',     c_ulong, 3), ('raddr_b',  c_ulong, 6), ('raddr_a',   c_ulong, 6),
-        ('op_add',    c_ulong, 5), ('op_mul',   c_ulong, 3), ('waddr_mul', c_ulong, 6),
-        ('waddr_add', c_ulong, 6), ('ws',       c_ulong, 1), ('sf',        c_ulong, 1),
-        ('cond_mul',  c_ulong, 3), ('cond_add', c_ulong, 3), ('pack',      c_ulong, 4),
-        ('pm',        c_ulong, 1), ('unpack',   c_ulong, 3), ('sig',       c_ulong, 4)
-    ]
+    _fields_ = [ (f, c_ulong, n) for f, n in [
+        ('mul_b', 3), ('mul_a', 3), ('add_b', 3), ('add_a', 3), ('raddr_b', 6),
+        ('raddr_a', 6), ('op_add', 5), ('op_mul', 3), ('waddr_mul', 6),
+        ('waddr_add', 6), ('ws', 1), ('sf', 1), ('cond_mul', 3),
+        ('cond_add', 3), ('pack', 4), ('pm', 1), ('unpack', 3), ('sig', 4)
+        ]]
 
 class BranchInsn(Insn):
-    _fields_ = [
-        ('immediate', c_ulong, 32), ('waddr_mul', c_ulong, 6), ('waddr_add', c_ulong, 6),
-        ('ws',        c_ulong, 1), ('raddr_a',    c_ulong, 5), ('reg',       c_ulong, 1),
-        ('rel',       c_ulong, 1), ('cond_br',    c_ulong, 4), ('dontcare',  c_ulong, 4),
-        ('sig',       c_ulong, 4)
-    ]
+    _fields_ = [ (f, c_ulong, n) for f, n in [
+        ('immediate', 32), ('waddr_mul', 6), ('waddr_add', 6), ('ws', 1),
+        ('raddr_a', 5), ('reg', 1), ('rel', 1), ('cond_br', 4),
+        ('dontcare', 4), ('sig', 4)
+        ]]
 
 class LoadInsn(Insn):
-    _fields_ = [
-        ('immediate', c_ulong, 32), ('waddr_mul', c_ulong, 6), ('waddr_add', c_ulong, 6),
-        ('ws',        c_ulong, 1), ('sf',         c_ulong, 1), ('cond_mul',  c_ulong, 3),
-        ('cond_add',  c_ulong, 3), ('pack',       c_ulong, 4), ('pm',        c_ulong, 1),
-        ('unpack',    c_ulong, 3), ('sig',        c_ulong, 4)
-    ]
+    _fields_ = [ (f, c_ulong, n) for f, n in [
+        ('immediate', 32), ('waddr_mul', 6), ('waddr_add', 6), ('ws', 1),
+        ('sf', 1), ('cond_mul', 3), ('cond_add', 3), ('pack', 4), ('pm', 1),
+        ('unpack', 3), ('sig', 4)
+        ]]
 
 class SemaInsn(Insn):
-    _fields_ = [
-        ('semaphore', c_ulong, 4), ('sa',        c_ulong, 1), ('dontcare',  c_ulong, 27),
-        ('waddr_mul', c_ulong, 6), ('waddr_add', c_ulong, 6), ('ws',        c_ulong, 1),
-        ('sf',        c_ulong, 1), ('cond_mul',  c_ulong, 3), ('cond_add',  c_ulong, 3),
-        ('pack',      c_ulong, 4), ('pm',        c_ulong, 1), ('unpack',    c_ulong, 3),
-        ('sig',       c_ulong, 4)
-    ]
+    _fields_ = [ (f, c_ulong, n) for f, n in [
+        ('semaphore', 4), ('sa', 1), ('dontcare', 27), ('waddr_mul', 6),
+        ('waddr_add', 6), ('ws', 1), ('sf', 1), ('cond_mul', 3),
+        ('cond_add', 3), ('pack', 4), ('pm', 1), ('unpack', 3), ('sig', 4)
+        ]]
 
 # Encoding of small immediate values.
 _SMALL_IMMED = {
