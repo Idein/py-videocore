@@ -325,63 +325,6 @@ _SMALL_IMMED = {
     )}
 _SMALL_IMMED['0.0'] = 0     # 0.0 and 0 have same code
 
-def pack_imm(val):
-    """ Pack 'val' to 32-bit array for load and branch instructions.
-
-    This function packs 'val' to 32-bit array for the immediate field of load and branch
-    instructions. It returns the packed value with 'unpack' bits.
-
-    >>> pack_imm(1)
-    (1, 0)
-    >>> pack_imm(-3)
-    (4294967293L, 0)
-    >>> pack_imm(1.3)
-    (1067869798, 0)
-    >>> pack_imm([3, 3, 1, 1, 0, 2, 3, 3, 1, 3, 0, 2, 2, 1, 0, 1])
-    (3344495557L, 3)
-    >>> pack_imm([-2,  1,  1,  1, -2,  0,  0,  1, -1,  1, -1, -2,  1,  1,  1, -1])
-    (2293330415L, 1)
-    >>> pack_imm('hello')
-    Traceback (most recent call last):
-    ...
-    AssembleError: Unsupported immediate value hello
-    >>> pack_imm([4,2,3])
-    Traceback (most recent call last):
-    ...
-    AssembleError: 4 is not a 2-bit unsigned value
-    >>> pack_imm([0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16])
-    Traceback (most recent call last):
-    ...
-    AssembleError: Too many values [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
-    """
-
-    if isinstance(val, float):
-        return unpack('L', pack('f', val))[0], 0x0
-    elif isinstance(val, (int, long)):
-        fmt = 'l' if val < 0 else 'L'
-        return unpack('L', pack(fmt, val))[0], 0x0
-    elif not isinstance(val, (list, tuple, numpy.ndarray)):
-        raise AssembleError('Unsupported immediate value {}'.format(val))
-
-    # per-element immediate
-    values = list(val)
-    if len(values) > 16:
-        raise AssembleError('Too many values {}'.format(val))
-
-    values.extend([0] * (16-len(values)))
-    signed = any(map(lambda x: x < 0, values))
-    high = 0
-    low  = 0
-    for i in range(16):
-        high <<= 1
-        low  <<= 1
-        v = values[i]
-        if (signed and (v >= 2 or v < -2)) or (not signed and v >= 4):
-            raise AssembleError('{} is not a 2-bit {} value'.format(v, 'signed' if signed else 'unsigned'))
-        high |= (v & 0x2) >> 1
-        low  |= v & 0x1
-    return (high << 16) | low, 2*(not signed) + 1
-
 ADD_INSTRUCTIONS = ['nop', 'fadd', 'fsub', 'fmin', 'fmax', 'fminabs', 'fmaxabs', 'ftoi', 'itof',
     '', '', '', 'iadd', 'isub', 'shr', 'asr', 'ror', 'shl', 'imin', 'imax', 'band', 'bor',
     'bxor', 'bnot', 'clz', '', '', '', '', '', 'v8adds', 'v8subs'
@@ -691,6 +634,35 @@ class Assembler(object):
         self.backpatch()
         return ''.join(self.insns)
 
+    def pack_imm(self, val):
+        if isinstance(val, float):
+            return unpack('L', pack('f', val))[0], 0x0
+        elif isinstance(val, (int, long)):
+            fmt = 'l' if val < 0 else 'L'
+            return unpack('L', pack(fmt, val))[0], 0x0
+        elif not isinstance(val, (list, tuple, numpy.ndarray)):
+            raise AssembleError('Unsupported immediate value {}'.format(val))
+
+        # per-element immediate
+        values = list(val)
+        if len(values) > 16:
+            raise AssembleError('Too many values {}'.format(val))
+
+        values.extend([0] * (16-len(values)))
+        signed = any(map(lambda x: x < 0, values))
+        high = 0
+        low  = 0
+        for i in range(16):
+            high <<= 1
+            low  <<= 1
+            v = values[i]
+            if (signed and (v >= 2 or v < -2)) or (not signed and v >= 4):
+                raise AssembleError('{} is not a 2-bit {} value'.format(v, 'signed' if signed else 'unsigned'))
+            high |= (v & 0x2) >> 1
+            low  |= v & 0x1
+        return (high << 16) | low, 2*(not signed) + 1
+
+
     @syntax_sugar
     def ldi(self, *args, **kwargs):
         reg1 = args[0]
@@ -708,7 +680,7 @@ class Assembler(object):
             if not (reg2.spec & _REG_BW):
                 raise AssembleError('{} is not a write register of regfile B'.format(reg2))
 
-        imm, unpack = pack_imm(imm)
+        imm, unpack = self.pack_imm(imm)
         self.emit(LoadInsn(sig = 0xE, unpack = unpack, pm = 0, pack = 0, cond_add = 1,
             cond_mul = 1, sf = 0, ws = 0, waddr_add = reg1.addr, waddr_mul = reg2.addr,
             immediate = imm,))
