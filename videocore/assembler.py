@@ -30,6 +30,7 @@ class AssembleError(Exception):
 
 #============================== Encoding tables ===============================
 
+
 # Signaling bits.
 _SIGNAL = {
     name: code
@@ -86,8 +87,8 @@ _INPUT_MUXES = {
     }
 
 
-
 #=================================== Register =================================
+
 
 # Flags to specify locations of registers.
 _REG_AR = 1 << 3   # Regfile A read location
@@ -288,6 +289,7 @@ REGISTERS.update(ACCUMULATORS)
 
 
 #============================ Instruction encoding ============================
+
 
 class Insn(Structure):
     'Instruction encoding.'
