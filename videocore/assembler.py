@@ -28,6 +28,65 @@ class AssembleError(Exception):
     'Exception related to QPU assembler'
 
 
+#============================== Encoding tables ===============================
+
+# Signaling bits.
+_SIGNAL = {
+    name: code
+    for code, name in enumerate([
+        'breakpoint', 'no signal', 'thread switch', 'thread end',
+        'wait scoreboard', 'unlock scoreboard', 'last thread switch',
+        'load coverage', 'load color', 'load color and thread end',
+        'load tmu0', 'load tmu1', 'load alpha', 'alu small imm', 'load',
+        'branch'
+    ])}
+
+# Add ALU instructions
+_ADD_INSN = {
+    name: code
+    for code, name in enumerate([
+        'nop', 'fadd', 'fsub', 'fmin', 'fmax', 'fminabs', 'fmaxabs', 'ftoi',
+        'itof', '', '', '', 'iadd', 'isub', 'shr', 'asr', 'ror', 'shl', 'imin',
+        'imax', 'band', 'bor', 'bxor', 'bnot', 'clz', '', '', '', '', '',
+        'v8adds', 'v8subs'
+    ]) if name
+    }
+
+# Mul ALU instructions
+_MUL_INSN = {
+    name: code
+    for code, name in enumerate([
+        'nop', 'fmul', 'mul24', 'v8muld', 'v8min', 'v8max', 'v8adds', 'v8subs'
+    ])}
+
+# Branch instructions
+_BRANCH_INSN = {
+    name: code
+    for code, name in enumerate([
+        'jz', 'jnz', 'jz_any', 'jnz_any', 'jn', 'jnn', 'jn_any', 'jnn_any',
+        'jc', 'jnc', 'jc_any', 'jnc_any', '', '', '', 'jmp'
+    ]) if name
+    }
+
+# Encoding of small immediate values.
+_SMALL_IMMED = {
+    value: code
+    for code, value in enumerate(
+        [repr(i) for i in range(16)] +       # 0,1,2,..,15
+        [repr(i) for i in range(-16, 0)] +   # -16,-15,..,-1
+        [repr(2.0**i) for i in range(8)] +   # 1.0,2.0,..,128.0
+        [repr(2.0**i) for i in range(-8, 0)] # 1.0/256.0,1.0/128.0,..,1.0/2.0
+    )}
+_SMALL_IMMED['0.0'] = 0     # 0.0 and 0 have same code
+
+
+# Input multiplexers.
+_INPUT_MUXES = {
+    'r0': 0, 'r1': 1, 'r2': 2, 'r3': 3, 'r4': 4, 'r5': 5, 'A': 6, 'B': 7
+    }
+
+
+
 #=================================== Register =================================
 
 # Flags to specify locations of registers.
@@ -229,61 +288,6 @@ REGISTERS.update(ACCUMULATORS)
 
 
 #============================ Instruction encoding ============================
-
-# Signaling bits.
-_SIGNAL = {
-    name: code
-    for code, name in enumerate([
-        'breakpoint', 'no signal', 'thread switch', 'thread end',
-        'wait scoreboard', 'unlock scoreboard', 'last thread switch',
-        'load coverage', 'load color', 'load color and thread end',
-        'load tmu0', 'load tmu1', 'load alpha', 'alu small imm', 'load',
-        'branch'
-    ])}
-
-# Add ALU instructions
-_ADD_INSN = {
-    name: code
-    for code, name in enumerate([
-        'nop', 'fadd', 'fsub', 'fmin', 'fmax', 'fminabs', 'fmaxabs', 'ftoi',
-        'itof', '', '', '', 'iadd', 'isub', 'shr', 'asr', 'ror', 'shl', 'imin',
-        'imax', 'band', 'bor', 'bxor', 'bnot', 'clz', '', '', '', '', '',
-        'v8adds', 'v8subs'
-    ]) if name
-    }
-
-# Mul ALU instructions
-_MUL_INSN = {
-    name: code
-    for code, name in enumerate([
-        'nop', 'fmul', 'mul24', 'v8muld', 'v8min', 'v8max', 'v8adds', 'v8subs'
-    ])}
-
-# Branch instructions
-_BRANCH_INSN = {
-    name: code
-    for code, name in enumerate([
-        'jz', 'jnz', 'jz_any', 'jnz_any', 'jn', 'jnn', 'jn_any', 'jnn_any',
-        'jc', 'jnc', 'jc_any', 'jnc_any', '', '', '', 'jmp'
-    ]) if name
-    }
-
-# Encoding of small immediate values.
-_SMALL_IMMED = {
-    value: code
-    for code, value in enumerate(
-        [repr(i) for i in range(16)] +       # 0,1,2,..,15
-        [repr(i) for i in range(-16, 0)] +   # -16,-15,..,-1
-        [repr(2.0**i) for i in range(8)] +   # 1.0,2.0,..,128.0
-        [repr(2.0**i) for i in range(-8, 0)] # 1.0/256.0,1.0/128.0,..,1.0/2.0
-    )}
-_SMALL_IMMED['0.0'] = 0     # 0.0 and 0 have same code
-
-
-# Input multiplexers.
-_INPUT_MUXES = {
-    'r0': 0, 'r1': 1, 'r2': 2, 'r3': 3, 'r4': 4, 'r5': 5, 'A': 6, 'B': 7
-    }
 
 class Insn(Structure):
     'Instruction encoding.'
