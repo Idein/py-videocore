@@ -229,9 +229,9 @@ def pack_mul(asm):
     for op in ['rep 8 mul', '8a mul', '8b mul', '8c mul', '8d mul']:
         mov(ra0, vpm)
         nop()
-        fmul(rb0.pack(op), ra0, 1.0)
+        fmul(ra0, ra0, 1.0, pack=op)
         nop()
-        mov(vpm, rb0)
+        mov(vpm, ra0)
 
 def test_pack_mul():
     def to_byte(vec):

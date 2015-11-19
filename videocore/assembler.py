@@ -151,10 +151,6 @@ class Register(object):
 
         return Register(self.name, self.addr, spec, unpack=_UNPACK[op], pm=pm)
 
-
-# * 'rep 8 mul', '8a mul', '8b mul', '8c mul', '8d mul':
-#     Convert float32 in range [0.0, 1.0] to uint8.
-
 REGISTERS = {}
 
 # General purpose registers
@@ -543,6 +539,15 @@ def syntax_sugar(f):
     INSTRUCTION_ALIASES.append(f.__name__)
     return f
 
+_MUL_PACK = {
+    'nop': 0,
+    'rep 8 mul': 3,
+    '8a mul': 4 ,
+    '8b mul': 5,
+    '8c mul': 6,
+    '8d mul': 7
+    }
+
 class MulInsnEmitter(object):
     def __init__(self, asm, op_add, add_dst, add_opd1, add_opd2, sig, set_flags):
         self.asm       = asm
@@ -557,13 +562,23 @@ class MulInsnEmitter(object):
             mul_dst  = REGISTERS['null'],
             mul_opd1 = REGISTERS['r0'],
             mul_opd2 = REGISTERS['r0'],
-            rotate   = 0
+            rotate   = 0,
+            pack = 'nop'
             ):
+
+        mul_pack = _MUL_PACK[pack]
+
         add_a, add_b, mul_a, mul_b, raddr_a, raddr_b, immed, unpack, read_pm =\
                 locate_read_operands(self.add_opd1, self.add_opd2, mul_opd1, mul_opd2)
 
-        waddr_add, waddr_mul, write_swap, pack, write_pm =\
+        waddr_add, waddr_mul, write_swap, regA_pack, _ =\
                 locate_write_operands(self.add_dst, mul_dst)
+
+        if mul_pack and regA_pack:
+            raise AssembleError('Multiple pack operationss')
+
+        write_pm = (mul_pack != 0)
+        pack = mul_pack or regA_pack
 
         if unpack and pack and read_pm != write_pm:
             raise AssembleError('Invalid combination of packing and unpacking')
