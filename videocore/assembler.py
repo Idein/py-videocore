@@ -371,6 +371,44 @@ class SemaInsn(Insn):
         ]]
 
 
+#================================= Assembler ==================================
+
+class Assembler(object):
+    def __init__(self):
+        self.instructions = []
+        self.program_counter = 0
+        self.labels = {}
+        self.backpatch_list = []    # list of (instruction index, label)
+        
+    def emit(self, insn, increment=True):
+        """Emit new instruction ``insn`` if increment is True else replace the
+        last instruction with ``insn``.
+        """
+
+        if increment:
+            self.instructions.append(insn)
+            self.program_counter += 8
+        else:
+            self.instructions[-1] = insn
+
+    def _backpatch(self):
+        for i, label in self.backpatch_list:
+            if label not in self.labels:
+                raise AssembleError('Undefined label {}'.format(label))
+
+            insn = self.instructions[i]
+            assert(isinstance(insn, BranchInsn))
+
+            insn.immediate = self.labels[label] - 8*(i + 4)
+        self.backpatch_list = []
+
+    def get_code(self):
+        'Convert list of instructions to executable bytes.'
+
+        self._backpatch()
+        return ''.join(insn.to_bytes() for insn in self.instructions)
+
+
 def locate_read_operands(add1 = REGISTERS['r0'], add2 = REGISTERS['r0'],
         mul1 = REGISTERS['r0'], mul2 = REGISTERS['r0']):
 
@@ -553,41 +591,8 @@ class MulInsnEmitter(object):
 for name, code in _MUL_INSN.items():
     setattr(MulInsnEmitter, name, _partialmethod(MulInsnEmitter.assemble, code))
 
-class Assembler(object):
+class AddInsnEmitter(Assembler):
     REGISTERS = REGISTERS
-
-    def __init__(self):
-        self.insns  = []    # instruction words
-        self.pc     = 0     # program counter
-        self.labels = {}
-        self.backpatch_list = []
-
-    def emit(self, insn, increment=True):
-        if increment:
-            self.insns.append(insn.to_bytes())
-            self.pc += 8
-        else:
-            self.insns[-1] = insn.to_bytes()
-
-    def get_insn(self, pc):
-        return Insn.from_bytes(self.insns[pc/8])
-
-    def set_insn(self, pc, insn):
-        self.insns[pc/8] = insn.to_bytes()
-
-    def backpatch(self):
-        for insn_pc, label in self.backpatch_list:
-            if label not in self.labels:
-                raise AssembleError('Undefined label {}'.format(label))
-            insn = self.get_insn(insn_pc)
-            assert(isinstance(insn, BranchInsn))
-            insn.immediate = self.labels[label] - (insn_pc + 4*8)
-            self.set_insn(insn_pc, insn)
-        self.backpatch_list = []
-
-    def getcode(self):
-        self.backpatch()
-        return ''.join(self.insns)
 
     def pack_imm(self, val):
         if isinstance(val, float):
@@ -837,16 +842,16 @@ class Assembler(object):
         self.nop()
 
 for name, code in _ADD_INSN.items():
-    setattr(Assembler, name, _partialmethod(Assembler.add_insn, name, code))
+    setattr(AddInsnEmitter, name, _partialmethod(AddInsnEmitter.add_insn, name, code))
     INSTRUCTION_ALIASES.append(name)
 
 for name in _MUL_INSN:
     if name not in _ADD_INSN:
-        setattr(Assembler, name, _partialmethod(Assembler.mul_insn, name))
+        setattr(AddInsnEmitter, name, _partialmethod(AddInsnEmitter.mul_insn, name))
         INSTRUCTION_ALIASES.append(name)
 
 for name, code in _BRANCH_INSN.items():
-    setattr(Assembler, name, _partialmethod(Assembler.branch_insn, code))
+    setattr(AddInsnEmitter, name, _partialmethod(AddInsnEmitter.branch_insn, code))
     INSTRUCTION_ALIASES.append(name)
 
 SETUP_ASM_LOCALS = ast.parse(
@@ -874,6 +879,6 @@ def qpucode(f):
     return scope[f.__name__]
 
 def assemble(f, *args, **kwargs):
-    asm = Assembler()
+    asm = AddInsnEmitter()
     f(asm, *args, **kwargs)
-    return asm.getcode()
+    return asm.get_code()
