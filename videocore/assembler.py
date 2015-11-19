@@ -70,6 +70,46 @@ class Register(object):
     def __str__(self):
         return self.name
 
+    def pack(self, op):
+        """Regfile-A pack.
+
+        Call in write locations like this.
+
+        >>> iadd(ra1.pack('16a'), ra0, rb0)
+
+        In case of this example, QPU converts the result of ra0 + rb0 to int16
+        then stores it to lower 16 bits of ra1.  The numbers and characters
+        (abcd) in operation codes specifies location of registers where the
+        packed bits to be stored. 'a' is for the least bits and 'd' for the
+        highest.
+
+        Operation codes with 'sat' suffix instruct to perform *saturation
+        arithmetic*.
+
+        :param op: One of the following strings to specify unpack operation.
+            * 'nop': no operation
+            * '16a', '16b':
+                Convert float32 to float16 for floating-point arithmetic, int32
+                to int16 for others.
+            * '8a', '8b', '8c', '8d':
+                Convert int32 to uint8.
+            * 'rep 8':
+                Convert int32 to uint8 then replicate it 4 times accross word.
+            * '32 sat', '16a sat', '16b sat', 'rep 8 sat', '8a sat', '8b sat',
+              '8c sat', '8d sat7:
+                Saturation arithmetic version of former codes.
+
+        See section 3 of the reference guide for details.
+        """
+
+        if (self.name in ['r0', 'r1', 'r2', 'r3', 'r4', 'r5'] or
+            not (self.spec & _REG_AW)):
+            raise AssembleError(
+                'Packing is only available for regfile-A write locations'
+                )
+
+        return Register(self.name, self.addr, _REG_AW, pack=_PACK[op], pm=0)
+
     def unpack(self, op):
         """Regfile-A unpack and r4 unpack.
 
@@ -110,46 +150,6 @@ class Register(object):
             pm = 0
 
         return Register(self.name, self.addr, spec, unpack=_UNPACK[op], pm=pm)
-
-    def pack(self, op):
-        """Regfile-A pack.
-
-        Call in write locations like this.
-
-        >>> iadd(ra1.pack('16a'), ra0, rb0)
-
-        In case of this example, QPU converts the result of ra0 + rb0 to int16
-        then stores it to lower 16 bits of ra1.  The numbers and characters
-        (abcd) in operation codes specifies location of registers where the
-        packed bits to be stored. 'a' is for the least bits and 'd' for the
-        highest.
-
-        Operation codes with 'sat' suffix instruct to perform *saturation
-        arithmetic*.
-
-        :param op: One of the following strings to specify unpack operation.
-            * 'nop': no operation
-            * '16a', '16b':
-                Convert float32 to float16 for floating-point arithmetic, int32
-                to int16 for others.
-            * '8a', '8b', '8c', '8d':
-                Convert int32 to uint8.
-            * 'rep 8':
-                Convert int32 to uint8 then replicate it 4 times accross word.
-            * '32 sat', '16a sat', '16b sat', 'rep 8 sat', '8a sat', '8b sat',
-              '8c sat', '8d sat7:
-                Saturation arithmetic version of former codes.
-
-        See section 3 of the reference guide for details.
-        """
-
-        if (self.name in ['r0', 'r1', 'r2', 'r3', 'r4', 'r5'] or
-            not (self.spec & _REG_AW)):
-            raise AssembleError(
-                'Packing is only available for regfile-A write locations'
-                )
-
-        return Register(self.name, self.addr, _REG_AW, pack=_PACK[op], pm=0)
 
 
 # * 'rep 8 mul', '8a mul', '8b mul', '8c mul', '8d mul':
