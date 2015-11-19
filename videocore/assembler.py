@@ -228,12 +228,38 @@ REGISTERS.update(IO_REGISTERS)
 REGISTERS.update(ACCUMULATORS)
 
 
-#================================ Instructions ================================
+#============================ Instruction encoding ============================
+
+# Signaling bits.
+_SIGNAL = {
+    name: code
+    for code, name in enumerate([
+        'breakpoint', 'no signal', 'thread switch', 'thread end',
+        'wait scoreboard', 'unlock scoreboard', 'last thread switch',
+        'load coverage', 'load color', 'load color and thread end',
+        'load tmu0', 'load tmu1', 'load alpha', 'alu small imm', 'load',
+        'branch'
+    ])}
 
 class Insn(Structure):
     'Instruction encoding.'
+
     def to_bytes(self):
         return string_at(byref(self), sizeof(self))
+
+    @classmethod
+    def from_bytes(self, buf):
+        bytes, = unpack('Q', buf)
+        sig = bytes >> 60
+        if sig == _SIGNAL['branch']:
+            return BranchInsn.from_buffer_copy(buf)
+        elif sig == _SIGNAL['load']:
+            if (bytes >> 57) & 0x7 == 4:
+                return SemaInsn.from_buffer_copy(buf)
+            else:
+                return LoadInsn.from_buffer_copy(buf)
+        else:
+            return AluInsn.from_buffer_copy(buf)
 
 class AluInsn(Insn):
     _fields_ = [
@@ -366,25 +392,6 @@ MUL_INSTRUCTIONS = ['nop', 'fmul', 'mul24', 'v8muld', 'v8min', 'v8max', 'v8adds'
 
 BRANCH_INSTRUCTIONS = ['jz', 'jnz', 'jz_any', 'jnz_any', 'jn', 'jnn', 'jn_any', 'jnn_any',
         'jc', 'jnc', 'jc_any', 'jnc_any', '', '', '', 'jmp']
-
-SIGNALING_BITS = {
-    'breakpoint'                : 0,
-    'no signal'                 : 1,
-    'thread switch'             : 2,
-    'thread end'                : 3,
-    'wait scoreboard'           : 4,
-    'unlock scoreboard'         : 5,
-    'last thread switch'        : 6,
-    'load coverage'             : 7,
-    'load color'                : 8,
-    'load color and thread end' : 9,
-    'load tmu0'                 : 10,
-    'load tmu1'                 : 11,
-    'load alpha'                : 12,
-    'alu small imm'             : 13,
-    'load'                      : 14,
-    'branch'                    : 15
-}
 
 ACCUMURATOR_CODES =  {'r0': 0, 'r1': 1, 'r2': 2, 'r3': 3, 'r4': 4, 'r5': 5}
 INPUT_MUX_REGFILE_A = 6
@@ -612,7 +619,7 @@ class MulInsnEmitter(object):
             if self.sig != 'no signal':
                 raise AssembleError('Signal {} can not be used with ALU small immediate instruction'.format(sig))
             self.sig = 'alu small imm'
-        sig_bits = SIGNALING_BITS[self.sig]
+        sig_bits = _SIGNAL[self.sig]
 
         if rotate:
             if immed:
@@ -666,15 +673,7 @@ class Assembler(object):
             self.insns[-1] = insn.to_bytes()
 
     def get_insn(self, pc):
-        buf   = self.insns[pc/8]
-        bytes, = unpack('Q', buf)
-        sig = bytes >> 60
-        if sig == SIGNALING_BITS['branch']:
-            return BranchInsn.from_buffer_copy(buf)
-        elif sig == SIGNALING_BITS['load']:
-            return LoadInsn.from_buffer_copy(buf)
-        else:
-            return AluInsn.from_buffer_copy(buf)
+        return Insn.from_bytes(self.insns[pc/8])
 
     def set_insn(self, pc, insn):
         self.insns[pc/8] = insn.to_bytes()
@@ -730,7 +729,7 @@ class Assembler(object):
             if sig != 'no signal':
                 raise AssembleError('Signal {} can not be used with ALU small immediate instruction'.format(sig))
             sig = 'alu small imm'
-        sig_bits = SIGNALING_BITS[sig]
+        sig_bits = _SIGNAL[sig]
 
         if name == 'nop':
             set_flags = False
