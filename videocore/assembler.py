@@ -70,7 +70,7 @@ _PACK = {
     #--- packing without saturation (just take lower bits) ---
     '16a': 1,    # float32 to float16 or int32 to int16 (bits [0:16])
     '16b': 2,    # ditto (bits [16:32])
-    'rep 8a': 3, # replicate LS byte 4 times.
+    'rep 8': 3,  # replicate LS byte 4 times.
     '8a': 4,     # to uint8 with no saturation (bits [0:8])
     '8b': 5,     # ditto (bits [8:16])
     '8c': 6,     # ditto (bits [16:24])
@@ -80,14 +80,14 @@ _PACK = {
     '32 sat': 8,
     '16a sat': 9,
     '16b sat': 10,
-    'rep 8a sat': 11,
+    'rep 8 sat': 11,
     '8a sat': 12,
     '8b sat': 13,
     '8c sat': 14,
     '8d sat': 15,
 
     #--- MUL ALU packing ---
-    'rep 8a mul': 3, # map [0.0, 1.0] to [0, 255] and replicate it 4 times
+    'rep 8 mul': 3, # map [0.0, 1.0] to [0, 255] and replicate it 4 times
     '8a mul': 4,     # map [0.0, 1.0] to [0, 255] and store it to bits [0:8]
     '8b mul': 5,     # ditto (bits [8:16])
     '8c mul': 6,     # ditto (bits [16:24])

@@ -144,7 +144,7 @@ def test_unpack_R4():
 
 @qpucode
 def pack_regA_int_no_sat(asm):
-    for op in ['nop', '16a', '16b', 'rep 8a', '8a', '8b', '8c', '8d']:
+    for op in ['nop', '16a', '16b', 'rep 8', '8a', '8b', '8c', '8d']:
         mov(ra0.pack(op), vpm)
         nop()
         mov(vpm, ra0)
@@ -169,7 +169,7 @@ def test_pack_regA_int_no_sat():
 
 @qpucode
 def pack_regA_int_sat(asm):
-    for op in ['32 sat', '16a sat', '16b sat', 'rep 8a sat', '8a sat',
+    for op in ['32 sat', '16a sat', '16b sat', 'rep 8 sat', '8a sat',
                '8b sat', '8c sat', '8d sat']:
         mov(ra0, vpm)
         nop()
@@ -226,7 +226,7 @@ def test_pack_regA_float():
 
 @qpucode
 def pack_mul(asm):
-    for op in ['rep 8a mul', '8a mul', '8b mul', '8c mul', '8d mul']:
+    for op in ['rep 8 mul', '8a mul', '8b mul', '8c mul', '8d mul']:
         mov(ra0, vpm)
         nop()
         fmul(rb0.pack(op), ra0, 1.0)
