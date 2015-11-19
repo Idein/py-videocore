@@ -392,12 +392,15 @@ class Assembler(object):
             self.instructions[-1] = insn
 
     def _backpatch(self):
+        'Backpatch immediates of branch instructions'
+
         for i, label in self.backpatch_list:
             if label not in self.labels:
                 raise AssembleError('Undefined label {}'.format(label))
 
             insn = self.instructions[i]
             assert(isinstance(insn, BranchInsn))
+            assert(insn.rel)
 
             insn.immediate = self.labels[label] - 8*(i + 4)
         self.backpatch_list = []
