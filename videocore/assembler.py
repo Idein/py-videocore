@@ -325,28 +325,6 @@ _SMALL_IMMED = {
     )}
 _SMALL_IMMED['0.0'] = 0     # 0.0 and 0 have same code
 
-def pack_small_imm(val):
-    """Pack 'val' to 6-bit array for ALU instruction with small immediates.
-
-    >>> pack_small_imm(1)
-    1
-    >>> pack_small_imm(-2)
-    30
-    >>> pack_small_imm(1.0)
-    32
-    >>> pack_small_imm(1.0/256.0)
-    40
-    >>> pack_small_imm(1.2)
-    Traceback (most recent call last):
-    ...
-    AssembleError: Immediate operand 1.2 is not allowed
-    """
-
-    code = _SMALL_IMMED.get(repr(val))
-    if code is None:
-        raise AssembleError('Immediate operand {} is not allowed'.format(val))
-    return code
-
 def pack_imm(val):
     """ Pack 'val' to 32-bit array for load and branch instructions.
 
@@ -505,7 +483,7 @@ def locate_read_operands(add1 = REGISTERS['r0'], add2 = REGISTERS['r0'],
         if mux[i] is not None: continue
 
         if not isinstance(opd, Register):
-            imm_value = pack_small_imm(opd)
+            imm_value = _SMALL_IMMED[repr(opd)]
             if raddr_b is not None and not (immed and raddr_b == imm_value):
                 raise AssembleError('Too many regfile B operand {}'.format(opd))
             raddr_b = imm_value
