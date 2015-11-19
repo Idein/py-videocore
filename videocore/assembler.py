@@ -44,39 +44,12 @@ _UNPACK = {
     }
 
 # See Register.pack.
-#
-# This instruction reads contents of rb0 (32 bits times 16 SIMD elements) then
-# writes their lower 16 bits to uppwer 16 bits of ra0.
-# Packing with ' sat' performs packing of 32 bit signed integer with
-# saturation.
 _PACK = {
-    'nop': 0,
-
-    #--- packing without saturation (just take lower bits) ---
-    '16a': 1,    # float32 to float16 or int32 to int16 (bits [0:16])
-    '16b': 2,    # ditto (bits [16:32])
-    'rep 8': 3,  # replicate LS byte 4 times.
-    '8a': 4,     # to uint8 with no saturation (bits [0:8])
-    '8b': 5,     # ditto (bits [8:16])
-    '8c': 6,     # ditto (bits [16:24])
-    '8d': 7,     # ditto (bits [24:32])
-
-    #--- packing with saturation ---
-    '32 sat': 8,
-    '16a sat': 9,
-    '16b sat': 10,
-    'rep 8 sat': 11,
-    '8a sat': 12,
-    '8b sat': 13,
-    '8c sat': 14,
-    '8d sat': 15,
-
-    #--- MUL ALU packing ---
-    'rep 8 mul': 3, # map [0.0, 1.0] to [0, 255] and replicate it 4 times
-    '8a mul': 4,     # map [0.0, 1.0] to [0, 255] and store it to bits [0:8]
-    '8b mul': 5,     # ditto (bits [8:16])
-    '8c mul': 6,     # ditto (bits [16:24])
-    '8d mul': 7,     # ditto (bits [24:32])
+    op: code for code, op in enumerate([
+        'nop', '16a', '16b', 'rep 8', '8a', '8b', '8c', '8d', '32 sat',
+        '16a sat', '16b sat', 'rep 8 sat', '8a sat', '8b sat', '8c sat',
+        '8d sat'
+        ])
     }
 
 class Register(object):
