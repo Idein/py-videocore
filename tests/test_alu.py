@@ -52,6 +52,18 @@ def test_int_ops():
     assert all(Y[2] == np.minimum(X[0], X[1]))
     assert all(Y[3] == np.maximum(X[0], X[1]))
 
+@qpu
+def imul24_op(asm):
+    mov(r0, vpm)
+    mov(r1, vpm)
+    mul24(r2, r0, r1)
+    mov(vpm, r2)
+
+def test_imul24_op():
+    X = np.random.randint(0, 2**24-1, (2, 16)).astype('uint32')
+    Y = run_code(imul24_op, X, (1, 16), 'uint32')
+    assert all((X[0]*X[1]).astype('uint32') == Y[0])
+
 #========================== Bitwise binary operation ==========================
 
 @qpu
