@@ -91,8 +91,6 @@ def bitwise_un_ops(asm):
 def test_bitwise_un_ops():
     X = np.array([getrandbits(32) for i in range(16)]).astype('uint32')
     Y = run_code(bitwise_un_ops, X, 2, 'uint32')
-    print(np.vectorize(hex)(X))
-    print(np.vectorize(hex)(Y))
     assert all(Y[0] == ~X)
     assert all(Y[1] == np.vectorize(count_leading_zeros)(X))
 
