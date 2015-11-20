@@ -116,3 +116,42 @@ def test_shift_ops():
     assert all(X[0].astype('int32') >> X[1] == Y[1].astype('int32'))
     assert all(np.vectorize(rotate_right)(X[0], X[1]) == Y[2])
     assert all(X[0] << X[1] == Y[3])
+
+#========================= Floating-point arithmetic ==========================
+
+@qpu
+def float_ops(asm):
+    mov(r0, vpm)
+    mov(r1, vpm)
+    for op in ['fadd', 'fsub', 'fmin', 'fmax']:
+        getattr(asm, op)(r2, r0, r1)
+        mov(vpm, r2)
+
+def test_float_ops():
+    X = np.random.randn(2, 16).astype('float32')
+    Y = run_code(float_ops, X, 4, 'float32')
+
+    assert np.allclose(X[0] + X[1], Y[0], rtol=1e-3)
+    assert np.allclose(X[0] - X[1], Y[1], rtol=1e-3)
+    assert all(np.minimum(X[0], X[1]) == Y[2])
+    assert all(np.maximum(X[0], X[1]) == Y[3])
+
+#============================== Type conversion ===============================
+
+@qpu
+def type_conv(asm):
+    mov(r0, vpm)
+
+    ftoi(r1, r0)
+    itof(r2, r1)
+
+    mov(vpm, r1)
+    mov(vpm, r2)
+
+def test_type_conv():
+    X = np.random.randn(16).astype('float32') * 1000
+
+    Y = run_code(type_conv, X, 2, 'int32')
+
+    assert all(X.astype('int32') == Y[0])
+    assert all(X.astype('int32') == np.ndarray(16, 'float32', Y[1]))
