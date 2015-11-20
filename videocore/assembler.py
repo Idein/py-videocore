@@ -619,9 +619,9 @@ class MulEmitter(Emitter):
 
         sig = self.sig
         if use_imm or rotate:
-            if sig != 'no signal':
+            if sig != 'no signal' and sig != 'alu small imm':
                 raise AssembleError(
-                        'Signal {} can not be used with immediate'.format(sig))
+                        '\'{}\' can not be used with immediate'.format(sig))
             sig = 'alu small imm'
         sig_bits = _SIGNAL[sig]
 
