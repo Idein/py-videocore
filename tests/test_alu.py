@@ -240,3 +240,18 @@ def test_per_elmt_imm():
     Y = run_code(per_elmt_imm, X, (2, 16), 'int32')
     assert all(X + PER_ELMT_UNSIGNED_VALUES == Y[0])
     assert all(X + PER_ELMT_SIGNED_VALUES == Y[1])
+
+#=============================== Miscellaneous ================================
+
+@qpu
+def shared_small_imm(asm):
+    mov(r0, vpm)
+    fadd(r1, r0, 2.0).fmul(r2, r0, 2.0)
+    mov(vpm, r1)
+    mov(vpm, r2)
+
+def test_shared_small_imm():
+    X = np.random.randn(16).astype('float32')
+    Y = run_code(shared_small_imm, X, (2, 16), 'float32')
+    assert np.allclose(X + 2.0, Y[0], rtol=1e-3)
+    assert np.allclose(X * 2.0, Y[1], rtol=1e-3)
