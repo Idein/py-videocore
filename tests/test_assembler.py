@@ -5,7 +5,7 @@ from struct import pack
 from copy import deepcopy
 
 import videocore.assembler as A
-from videocore.assembler import REGISTERS, AssembleError 
+from videocore.assembler import REGISTERS, AssembleError, assemble, qpu
 
 #=================================== Register =================================
 
@@ -16,22 +16,37 @@ def test_register_names():
         assert(str(reg) == name)
 
 def test_pack_of_regA():
-    REGISTERS['ra0'].pack('nop')  # no throw
+    REGISTERS['ra0'].pack('16a')  # no throw
 
 @raises(AssembleError)
 def test_pack_of_regB():
-    REGISTERS['rb0'].pack('nop')
+    REGISTERS['rb0'].pack('16a')
 
 def test_unpack_of_regA():
-    REGISTERS['ra0'].unpack('nop')  # no throw
+    REGISTERS['ra0'].unpack('16a')  # no throw
 
 def test_unpack_of_r4():
-    REGISTERS['r4'].unpack('nop')   # no throw
+    REGISTERS['r4'].unpack('16a')   # no throw
 
 @raises(AssembleError)
 def test_unpack_of_regB():
-    REGISTERS['rb0'].unpack('nop')
+    REGISTERS['rb0'].unpack('16a')
 
+@qpu
+def pack_conflict(asm):
+    iadd(ra0.pack('16a'), r0, r1).fmul(ra1.pack('16a'), r2, r3)
+
+@raises(AssembleError)
+def test_pack_conflict():
+    assemble(pack_conflict)
+
+@qpu
+def unpack_conflict(asm):
+    iadd(r0, ra0.unpack('16a'), r4.unpack('16a'))
+
+@raises(AssembleError)
+def test_unpack_conflict():
+    assemble(unpack_conflict)
 
 #============================ Instruction encoding ============================
 
@@ -85,3 +100,22 @@ def test_ignore_dontcare():
     insn1.dontcare = 0x1
     insn2.dontcare = 0x2
     assert insn1 == insn2
+
+
+#================================== Assemble ==================================
+
+@qpu
+def dest_reg_conflict(asm):
+    iadd(ra0, r0, r1).fmul(ra1, r2, r3)
+
+@raises(AssembleError)
+def test_dest_reg_conflict():
+    assemble(dest_reg_conflict)
+
+@qpu
+def too_many_regB(asm):
+    iadd(r0, rb0, rb1)
+
+@raises(AssembleError)
+def test_too_many_regB():
+    assemble(too_many_regB)
