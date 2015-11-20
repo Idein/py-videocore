@@ -146,7 +146,7 @@ def test_regB_imm_conflict():
 
 @qpu
 def not_read_operand(asm):
-    iadd(r0, r0, vpm_write)
+    iadd(r0, r0, vpm_ld_addr)
 
 @raises(AssembleError)
 def test_not_read_operand():
