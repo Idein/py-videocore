@@ -21,13 +21,13 @@ def boilerplate(asm, f, nout):
     wait_dma_store()
     exit()
 
-def run_code(code, X, nout, dtype):
+def run_code(code, X, output_shape, output_type):
     with Driver() as drv:
         X = drv.copy(X)
-        Y = drv.alloc((nout, 16), dtype=dtype)
+        Y = drv.alloc(output_shape, dtype=output_type)
         drv.execute(
                 num_threads=1,
-                program=drv.program(boilerplate, code, nout),
+                program=drv.program(boilerplate, code, output_shape[0]),
                 uniforms=[X.address, Y.address]
                 )
         return np.copy(Y)
@@ -46,7 +46,7 @@ def test_int_ops():
     X = np.array(
             [getrandbits(32) for i in range(2*16)]
             ).reshape(2, 16).astype('int32')
-    Y = run_code(int_ops, X, 4, 'int32')
+    Y = run_code(int_ops, X, (4, 16), 'int32')
     assert all(Y[0] == X[0] + X[1])
     assert all(Y[1] == X[0] - X[1])
     assert all(Y[2] == np.minimum(X[0], X[1]))
@@ -66,7 +66,7 @@ def test_bitwise_bin_ops():
     X = np.array(
             [getrandbits(32) for i in range(2*16)]
             ).reshape(2, 16).astype('uint32')
-    Y = run_code(bitwise_bin_ops, X, 3, 'uint32')
+    Y = run_code(bitwise_bin_ops, X, (3, 16), 'uint32')
     assert all(Y[0] == X[0] & X[1])
     assert all(Y[1] == X[0] | X[1])
     assert all(Y[2] == X[0] ^ X[1])
@@ -90,7 +90,7 @@ def bitwise_un_ops(asm):
 
 def test_bitwise_un_ops():
     X = np.array([getrandbits(32) for i in range(16)]).astype('uint32')
-    Y = run_code(bitwise_un_ops, X, 2, 'uint32')
+    Y = run_code(bitwise_un_ops, X, (2, 16), 'uint32')
     assert all(Y[0] == ~X)
     assert all(Y[1] == np.vectorize(count_leading_zeros)(X))
 
@@ -111,7 +111,7 @@ def test_shift_ops():
     X = np.zeros((2, 16), dtype='uint32')
     X[0] = np.array([getrandbits(32) for i in range(16)])
     X[1] = np.random.randint(0, 32, 16)
-    Y = run_code(shift_ops, X, 4, 'uint32')
+    Y = run_code(shift_ops, X, (4, 16), 'uint32')
     assert all(X[0] >> X[1] == Y[0])
     assert all(X[0].astype('int32') >> X[1] == Y[1].astype('int32'))
     assert all(np.vectorize(rotate_right)(X[0], X[1]) == Y[2])
@@ -129,7 +129,7 @@ def float_ops(asm):
 
 def test_float_ops():
     X = np.random.randn(2, 16).astype('float32')
-    Y = run_code(float_ops, X, 4, 'float32')
+    Y = run_code(float_ops, X, (4, 16), 'float32')
 
     assert np.allclose(X[0] + X[1], Y[0], rtol=1e-3)
     assert np.allclose(X[0] - X[1], Y[1], rtol=1e-3)
