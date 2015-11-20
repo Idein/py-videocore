@@ -60,7 +60,7 @@ def test_equality():
     assert SAMPLE_ALU_INSN == SAMPLE_ALU_INSN
     assert SAMPLE_ALU_INSN != SAMPLE_BRANCH_INSN
 
-def test_bytes_convertion():
+def test_bytes_conversion():
     for sample_insn in [SAMPLE_ALU_INSN, SAMPLE_BRANCH_INSN,
                         SAMPLE_LOAD_INSN, SAMPLE_SEMA_INSN]:
         insn = A.Insn.from_bytes(sample_insn.to_bytes())
