@@ -113,6 +113,14 @@ def test_dest_reg_conflict():
     assemble(dest_reg_conflict)
 
 @qpu
+def too_many_regA(asm):
+    iadd(r0, ra0, ra1)
+
+@raises(AssembleError)
+def test_too_many_regA():
+    assemble(too_many_regA)
+
+@qpu
 def too_many_regB(asm):
     iadd(r0, rb0, rb1)
 
