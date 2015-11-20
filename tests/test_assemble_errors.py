@@ -185,9 +185,28 @@ def test_invalid_rotate_insn():
     assemble(invalid_rotate_insn)
 
 @qpu
-def invalid_immediate(asm):
+def unsupported_immediate(asm):
     ldi(r0, "Hello")
 
-@raises(AssembleError)
+@qpu
+def too_many_immediate(asm):
+    ldi(r0, [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+
+@qpu
+def invalid_per_elmt_immediate_1(asm):
+    ldi(r0, [1, 1, 1, 1, 1, 4, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+
+@qpu
+def invalid_per_elmt_immediate_2(asm):
+    ldi(r0, [1, -1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+
+@qpu
+def invalid_per_elmt_immediate_3(asm):
+    ldi(r0, [1, -3, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+
 def test_invalid_immediate():
-    assemble(invalid_immediate)
+    assert_raises(AssembleError, assemble, unsupported_immediate)
+    assert_raises(AssembleError, assemble, too_many_immediate)
+    assert_raises(AssembleError, assemble, invalid_per_elmt_immediate_1)
+    assert_raises(AssembleError, assemble, invalid_per_elmt_immediate_2)
+    assert_raises(AssembleError, assemble, invalid_per_elmt_immediate_3)

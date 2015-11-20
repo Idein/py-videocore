@@ -668,7 +668,7 @@ class LoadEmitter(Emitter):
 
     def _encode_per_element_imm(self, values):
         if len(values) > 16:
-            raise AssembleError('Too many immediate values {}'.format(val))
+            raise AssembleError('Too many immediate values {}'.format(values))
 
         values.extend([0] * (16-len(values)))
         unsigned = all(map(lambda x: x >= 0, values))
