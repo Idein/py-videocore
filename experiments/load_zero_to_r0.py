@@ -57,3 +57,5 @@ with Driver() as drv:
     test(case4)
     test(case5)
     test(case6)
+
+    print('#### REBOOT Raspberry Pi after you run this program ####')
