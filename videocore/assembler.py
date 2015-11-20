@@ -522,10 +522,10 @@ class AddEmitter(Emitter):
     def _emit(self, op_add, dst=REGISTERS['null'], opd1=REGISTERS['r0'],
             opd2=REGISTERS['r0'], sig='no signal', set_flags=True, **kwargs):
 
-        muxes, raddr_a, raddr_b, immed, unpack, read_pm = \
+        muxes, raddr_a, raddr_b, use_imm, unpack, read_pm = \
                 self._encode_read_operands(opd1, opd2)
 
-        if immed:
+        if use_imm:
             if sig != 'no signal':
                 raise AssembleError(
                         'Signal {} can not be used with immediate'.format(sig))
@@ -594,7 +594,7 @@ class MulEmitter(Emitter):
 
         mul_pack = _MUL_PACK[pack]
 
-        muxes, raddr_a, raddr_b, immed, unpack, read_pm = \
+        muxes, raddr_a, raddr_b, use_imm, unpack, read_pm = \
                 self._encode_read_operands(self.add_opd1, self.add_opd2,
                                            mul_opd1, mul_opd2)
 
@@ -618,7 +618,7 @@ class MulEmitter(Emitter):
             pm = write_pm
 
         sig = self.sig
-        if immed or rotate:
+        if use_imm or rotate:
             if sig != 'no signal':
                 raise AssembleError(
                         'Signal {} can not be used with immediate'.format(sig))
