@@ -565,8 +565,8 @@ class AddEmitter(Emitter):
         # Create MulEmitter which holds arguments of Add ALU for dual
         # issuing.
         return MulEmitter(
-                self, op_add=op_add, add_dst=dst, add_opd1=opd1, add_opd2=opd2,
-                cond_add=cond_add, sig=sig, set_flags=set_flags,
+                self.asm, op_add=op_add, add_dst=dst, add_opd1=opd1,
+                add_opd2=opd2, cond_add=cond_add, sig=sig, set_flags=set_flags,
                 increment=False, **kwargs)
 
 class MulEmitter(Emitter):
