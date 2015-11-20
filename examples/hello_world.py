@@ -1,6 +1,7 @@
+import numpy as np
+
 from videocore.assembler import qpu
 from videocore.driver import Driver
-import numpy as np
 
 @qpu
 def hello_world(asm):
