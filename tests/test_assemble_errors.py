@@ -183,3 +183,11 @@ def invalid_rotate_insn(asm):
 @raises(AssembleError)
 def test_invalid_rotate_insn():
     assemble(invalid_rotate_insn)
+
+@qpu
+def invalid_immediate(asm):
+    ldi(r0, "Hello")
+
+@raises(AssembleError)
+def test_invalid_immediate():
+    assemble(invalid_immediate)
