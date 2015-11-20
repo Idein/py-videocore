@@ -60,7 +60,7 @@ def imul24_op(asm):
     mov(vpm, r2)
 
 def test_imul24_op():
-    X = np.random.randint(0, 2**24-1, (2, 16)).astype('uint32')
+    X = np.random.randint(0, 2**24, (2, 16)).astype('uint32')
     Y = run_code(imul24_op, X, (1, 16), 'uint32')
     assert all((X[0]*X[1]).astype('uint32') == Y[0])
 
