@@ -24,7 +24,7 @@ def boilerplate(asm, f, nrows):
     wait_dma_store()
     exit()
 
-def runcode(code, X):
+def run_code(code, X):
     with Driver() as drv:
         X = drv.copy(X)
         drv.execute(
@@ -48,7 +48,7 @@ def test_unpack_regA_int():
             [getrandbits(32) for i in range(8*16)]
             ).reshape(8, 16).astype('uint32')
 
-    Y = runcode(unpack_regA_int, X)
+    Y = run_code(unpack_regA_int, X)
 
     assert all(X[0] == Y[0])
     assert all(((X[1]>> 0)&0xffff).astype('int16') == Y[1].astype('int16'))
@@ -77,7 +77,7 @@ def test_unpack_regA_float():
     X[2] <<= 16
     X[3:7] = np.array([getrandbits(32) for i in range(4*16)]).reshape(4, 16)
 
-    Y = runcode(unpack_regA_float, X)
+    Y = run_code(unpack_regA_float, X)
 
     assert all(X[0] == Y[0])
     assert np.allclose(F, unpack('16f', Y[1]), rtol=1e-3)
@@ -154,7 +154,7 @@ def test_pack_regA_int_no_sat():
             [getrandbits(32) for i in range(8*16)]
             ).reshape(8, 16).astype('uint32')
 
-    Y = runcode(pack_regA_int_no_sat, X)
+    Y = run_code(pack_regA_int_no_sat, X)
 
     assert all(X[0] == Y[0])
     assert all(X[1]&0xffff == (Y[1]>> 0)&0xffff)
@@ -187,7 +187,7 @@ def test_pack_regA_int_sat():
             [getrandbits(8) for i in range(5*16)]
             ).reshape(5, 16).astype('int8')
 
-    Y = runcode(pack_regA_int_sat, X)
+    Y = run_code(pack_regA_int_sat, X)
 
     assert all(np.clip(2*X[0].astype('int64'),-2**31,2**31-1) == Y[0])
     assert all(np.clip(2*X[1],-2**15,2**15-1) == (Y[1]&0xffff).astype('int16'))
@@ -214,7 +214,7 @@ def test_pack_regA_float():
     F = np.random.randn(5, 16).astype('float32')
     X = np.ndarray((5, 16), 'uint32', F)
 
-    Y = runcode(pack_regA_float, X)
+    Y = run_code(pack_regA_float, X)
 
     assert all(F[0] == np.ndarray(16, 'float32', Y[0]))
     assert np.allclose(F[1], to_float16(Y[1]>> 0), rtol=1e-3)
@@ -238,7 +238,7 @@ def test_pack_mul():
         return np.clip(vec*255,0,255).astype('int32')
     X = np.random.randn(5, 16).astype('float32')*0.5 + 0.5
 
-    Y = runcode(pack_mul, X)
+    Y = run_code(pack_mul, X)
     Y = np.ndarray((5, 16), 'int32', Y)
 
     assert all(np.abs(to_byte(X[0]) - ((Y[0]>> 0)&0xff).astype('int32')) <= 1)
