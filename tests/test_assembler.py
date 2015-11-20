@@ -32,22 +32,6 @@ def test_unpack_of_r4():
 def test_unpack_of_regB():
     REGISTERS['rb0'].unpack('16a')
 
-@qpu
-def pack_conflict(asm):
-    iadd(ra0.pack('16a'), r0, r1).fmul(ra1.pack('16a'), r2, r3)
-
-@raises(AssembleError)
-def test_pack_conflict():
-    assemble(pack_conflict)
-
-@qpu
-def unpack_conflict(asm):
-    iadd(r0, ra0.unpack('16a'), r4.unpack('16a'))
-
-@raises(AssembleError)
-def test_unpack_conflict():
-    assemble(unpack_conflict)
-
 #============================ Instruction encoding ============================
 
 SAMPLE_ALU_INSN = A.AluInsn(
@@ -167,3 +151,20 @@ def signal_conflict(asm):
 @raises(AssembleError)
 def test_signal_conflict():
     assemble(signal_conflict)
+
+@qpu
+def pack_conflict(asm):
+    iadd(ra0.pack('16a'), r0, r1).fmul(ra1.pack('16a'), r2, r3)
+
+@raises(AssembleError)
+def test_pack_conflict():
+    assemble(pack_conflict)
+
+@qpu
+def unpack_conflict(asm):
+    iadd(r0, ra0.unpack('16a'), r4.unpack('16a'))
+
+@raises(AssembleError)
+def test_unpack_conflict():
+    assemble(unpack_conflict)
+
