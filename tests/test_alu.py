@@ -222,6 +222,21 @@ def test_small_imm_float():
     for i, e in enumerate(range(-8, 8)):
         assert np.allclose(X * 2.0**e, Y[i], rtol=1e-3)
 
+#=============================== Load operation ===============================
+
+@qpu
+def load_two_dest(asm):
+    mov(r1, vpm) # dummy
+    ldi(r1, r2, 0x12345678)
+    mov(vpm, r1)
+    mov(vpm, r2)
+
+def test_load_two_dest():
+    X = np.ones(16, dtype='uint32')
+    Y = run_code(load_two_dest, X, (2, 16), 'uint32')
+
+    assert np.all(Y == 0x12345678)
+
 #=========================== Per-element immediate ============================
 
 PER_ELMT_UNSIGNED_VALUES = np.random.randint(0, 4, 16)
