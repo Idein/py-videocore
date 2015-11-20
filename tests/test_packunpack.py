@@ -226,7 +226,7 @@ def test_pack_regA_float():
 
 @qpu
 def pack_mul(asm):
-    for op in ['rep 8 mul', '8a mul', '8b mul', '8c mul', '8d mul']:
+    for op in ['rep 8', '8a', '8b', '8c', '8d']:
         mov(ra0, vpm)
         nop()
         fmul(ra0, ra0, 1.0, pack=op)
