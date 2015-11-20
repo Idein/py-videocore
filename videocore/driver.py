@@ -36,8 +36,11 @@ class Memory(object):
         self.handle  = None
         self.base  = None
         try:
-            self.handle  = self.mailbox.allocate_memory(size, 4096,
-                MailBox.MEM_FLAG_L1_NONALLOCATING)
+            if self._is_pi2():
+                mem_flag = MailBox.MEM_FLAG_DIRECT
+            else:
+                mem_flag = MailBox.MEM_FLAG_L1_NONALLOCATING
+            self.handle  = self.mailbox.allocate_memory(size, 4096, mem_flag)
             if self.handle == 0:
                 raise DriverError('Failed to allocate QPU device memory')
 
@@ -57,6 +60,10 @@ class Memory(object):
         self.base.close()
         self.mailbox.unlock_memory(self.handle)
         self.mailbox.release_memory(self.handle)
+
+    def _is_pi2(self):
+        rev = self.mailbox.get_board_revision()
+        return (rev & 0xffff) == 0x1041
 
 class Program(object):
     def __init__(self, code_addr, code):
