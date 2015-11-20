@@ -48,6 +48,12 @@ Installation
     $ cd py-videocore
     $ sudo python setup.py install
 
+You might need to update firmware.
+
+::
+
+    $ sudo rpi-update
+
 Be Careful
 ----------
 
