@@ -60,8 +60,6 @@ Be Careful
 Getting Started
 ---------------
 
-You have to run GPU programs as a super user.
-
 ::
 
     $ sudo python examples/hello_world.py
