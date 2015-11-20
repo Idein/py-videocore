@@ -165,5 +165,5 @@ def signal_conflict(asm):
     iadd(r0, r0, 1, sig = 'thread switch')
 
 @raises(AssembleError)
-def test_signal_conflict(asm):
+def test_signal_conflict():
     assemble(signal_conflict)
