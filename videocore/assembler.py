@@ -864,6 +864,9 @@ class Assembler(object):
 
 #=================================== Alias ====================================
 
+def alias(f):
+    setattr(Assembler, f.__name__, f)
+
 for name, code in _ADD_INSN.items():
     setattr(Assembler, name, _partialmethod(Assembler._emit_add, code))
 
@@ -877,8 +880,14 @@ for name, code in _BRANCH_INSN.items():
 
 Assembler.ldi = Assembler._emit_load
 
-def alias(f):
-    setattr(Assembler, f.__name__, f)
+@alias
+def rotate(asm, dst, src, shift, **kwargs):
+    return asm.v8min(dst, src, src, rotate=shift, **kwargs)
+
+def mul_rotate(self, dst, src, shift, **kwargs):
+    return self.v8min(dst, src, src, rotate=shift, **kwargs)
+
+MulEmitter.rotate = mul_rotate
 
 @alias
 def mov(asm, dst, src, **kwargs):

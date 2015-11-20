@@ -241,6 +241,28 @@ def test_per_elmt_imm():
     assert all(X + PER_ELMT_UNSIGNED_VALUES == Y[0])
     assert all(X + PER_ELMT_SIGNED_VALUES == Y[1])
 
+#============================== Vector rotatoin ===============================
+
+@qpu
+def vector_rotation(asm):
+    mov(r0, vpm)
+    ldi(r1, 1.0)
+    for shift in range(1, 16):
+        rotate(vpm, r0, shift)
+    for shift in range(-16, 16):
+        ldi(r5, shift)
+        nop()
+        rotate(vpm, r0, r5)
+
+def test_vector_rotation():
+    X = np.array([getrandbits(32) for i in range(16)]).astype('uint32')
+    Y = run_code(vector_rotation, X, (15 + 32, 16), 'uint32')
+
+    for i, shift in enumerate(range(1, 16)):
+        assert all(np.roll(X, shift) == Y[i])
+    for i, shift in enumerate(range(-16, 16)):
+        assert all(np.roll(X, shift) == Y[i+15])
+
 #=============================== Miscellaneous ================================
 
 @qpu
