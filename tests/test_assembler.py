@@ -151,3 +151,11 @@ def not_read_operand(asm):
 @raises(AssembleError)
 def test_not_read_operand():
     assemble(not_read_operand)
+
+@qpu
+def too_many_regfile_operands(asm):
+    iadd(r0, uniform, varying_read).fmul(r1, element_number, qpu_number)
+
+@raises(AssembleError)
+def test_too_many_regfile_operands():
+    assemble(too_many_regfile_operands)
