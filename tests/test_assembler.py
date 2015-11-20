@@ -119,3 +119,11 @@ def too_many_regB(asm):
 @raises(AssembleError)
 def test_too_many_regB():
     assemble(too_many_regB)
+
+@qpu
+def too_many_imm(asm):
+    iadd(r0, 1, 2)
+
+@raises(AssembleError)
+def test_too_many_imm():
+    assemble(too_many_imm)
