@@ -84,7 +84,7 @@ def count_leading_zeros(n):
 @qpu
 def bitwise_un_ops(asm):
     mov(r0, vpm)
-    for op in ['bnot', 'bcls']:
+    for op in ['bnot', 'clz']:
         getattr(asm, op)(r1, r0)
         mov(vpm, r1)
 
@@ -95,3 +95,21 @@ def test_bitwise_un_ops():
     print(np.vectorize(hex)(Y))
     assert all(Y[0] == ~X)
     assert all(Y[1] == np.vectorize(count_leading_zeros)(X))
+
+#============================== Shift operation ===============================
+
+@qpu
+def shift_ops(asm):
+    mov(r0, vpm)
+    mov(r1, vpm)
+    for op in ['shr', 'asr', 'ror', 'shl']:
+        getattr(asm, op)(r2, r0, r1)
+        mov(vpm, r2)
+
+def test_shift_ops():
+    X = np.zeros((2, 16), dtype='uint32')
+    X[0] = np.array([getrandbits(32) for i in range(16)])
+    X[1] = np.random.randint(0, 32, 16)
+    Y = run_code(shift_ops, X, 4, 'uint32')
+    print(np.vectorize(hex)(X))
+    print(np.vectorize(hex)(Y))
