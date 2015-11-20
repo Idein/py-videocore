@@ -209,3 +209,15 @@ def test_small_imm_int():
     Y = run_code(small_imm_int, X, (32, 16), 'int32')
     for i, imm in enumerate(range(-16, 16)):
         assert all(X + imm == Y[i])
+
+@qpu
+def small_imm_float(asm):
+    mov(r0, vpm)
+    for e in range(-8, 8):
+        fmul(vpm, r0, 2.0**e)
+
+def test_small_imm_float():
+    X = np.random.randn(16).astype('float32')
+    Y = run_code(small_imm_float, X, (16, 16), 'float32')
+    for i, e in enumerate(range(-8, 8)):
+        assert np.allclose(X * 2.0**e, Y[i], rtol=1e-3)
