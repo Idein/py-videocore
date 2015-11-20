@@ -738,11 +738,11 @@ class LoadEmitter(Emitter):
 class BranchEmitter(Emitter):
     'Emitter of branch instructions.'
 
-    def _emit(self, cond_br, target=0, reg=None, absolute=True,
+    def _emit(self, cond_br, target=0, reg=None, absolute=False,
              link=REGISTERS['null']):
 
         if isinstance(target, basestring):
-            self.backpatch_list.append((self.pc, target))
+            self.asm._add_backpatch_item(target)
             imm = 0
         elif isinstance(target, int):
             imm = target
@@ -769,7 +769,7 @@ class BranchEmitter(Emitter):
             raise AssembleError('Packing is not available for link register')
 
         insn = BranchInsn(
-            sig=0xF, cond_br=cond_br, rel=relative, reg=use_reg,
+            sig=0xF, cond_br=cond_br, rel=not absolute, reg=use_reg,
             raddr_a=raddr_a, ws=write_swap, waddr_add=waddr_add,
             waddr_mul=waddr_mul, immediate=imm
             )
@@ -849,6 +849,9 @@ class Assembler(object):
 
             insn.immediate = self._labels[label] - 8*(i + 4)
         self._backpatch_list = []
+
+    def _add_backpatch_item(self, target):
+        self._backpatch_list.append((len(self._instructions), target))
 
     def _get_code(self):
         'Convert list of _instructions to executable bytes.'
