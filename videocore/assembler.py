@@ -64,8 +64,8 @@ _MUL_INSN = {
 _BRANCH_INSN = {
     name: code
     for code, name in enumerate([
-        'jz', 'jnz', 'jz_any', 'jnz_any', 'jn', 'jnn', 'jn_any', 'jnn_any',
-        'jc', 'jnc', 'jc_any', 'jnc_any', '', '', '', 'jmp'
+        'jzs', 'jzc', 'jzs_any', 'jzc_any', 'jns', 'jnc', 'jns_any', 'jnc_any',
+        'jcs', 'jcc', 'jcs_any', 'jcc_any', '', '', '', 'jmp'
     ]) if name
     }
 
