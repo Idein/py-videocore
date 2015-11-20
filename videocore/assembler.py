@@ -376,173 +376,230 @@ class SemaInsn(Insn):
         ('cond_add', 3), ('pack', 4), ('pm', 1), ('unpack', 3), ('sig', 4)
         ]]
 
+#============================ Instruction emitter =============================
 
-#================================= Assembler ==================================
+class Emitter(object):
+    'Base class of instruction emitters.'
 
-class Assembler(object):
-    def __init__(self):
-        self.instructions = []
-        self.program_counter = 0
-        self.labels = {}
-        self.backpatch_list = []    # list of (instruction index, label)
-        
-    def emit(self, insn, increment=True):
-        """Emit new instruction ``insn`` if increment is True else replace the
-        last instruction with ``insn``.
+    def __init__(self, asm):
+        self.asm = asm
+
+    def _encode_write_operands(self,
+            add_dst=REGISTERS['null'], mul_dst=REGISTERS['null']):
+        """Encode waddr_add, waddr_mul, write_swap, pack and pm from given two
+        destination registers.
         """
 
-        if increment:
-            self.instructions.append(insn)
-            self.program_counter += 8
-        else:
-            self.instructions[-1] = insn
+        assert(add_dst.unpack_bits == 0)
+        assert(mul_dst.unpack_bits == 0)
 
-    def _backpatch(self):
-        'Backpatch immediates of branch instructions'
+        if add_dst.pack_bits != 0 and mul_dst.pack_bits != 0:
+            raise AssembleError(
+                'Conflict packing of two registers: {} {}'.format(
+                    add_dst, reg_dst))
 
-        for i, label in self.backpatch_list:
-            if label not in self.labels:
-                raise AssembleError('Undefined label {}'.format(label))
+        pack_bits = add_dst.pack_bits or mul_dst.pack_bits
 
-            insn = self.instructions[i]
-            assert(isinstance(insn, BranchInsn))
-            assert(insn.rel)
+        if add_dst.spec & _REG_AW and mul_dst.spec & _REG_BW:
+            return add_dst.addr, mul_dst.addr, False, pack_bits
+        elif mul_dst.spec & _REG_AW and add_dst.spec & _REG_BW:
+            return add_dst.addr, mul_dst.addr, True, pack_bits
 
-            insn.immediate = self.labels[label] - 8*(i + 4)
-        self.backpatch_list = []
+        raise AssembleError(
+            'Invalid combination of destination registers: {} {}'.format(
+                add_dst, mul_dst))
 
-    def get_code(self):
-        'Convert list of instructions to executable bytes.'
+    def _encode_read_operands(self,
+            add_a=REGISTERS['r0'], add_b=REGISTERS['r0'],
+            mul_a=REGISTERS['r0'], mul_b=REGISTERS['r0']):
+        """Encode input muxes, raddr_a, raddr_b, unpack from given four source
+        registers.
+        """
 
-        self._backpatch()
-        return ''.join(insn.to_bytes() for insn in self.instructions)
+        operands = [add_a, add_b, mul_a, mul_b]
+        muxes = [None, None, None, None]
+        unpack_bits = 0
+        pm_bit = 0
+        raddr_a = None
+        raddr_b = None
+        small_imm = None
 
+        # Encode unpacking.
+        for opd in operands:
+            if not isinstance(opd, Register):
+                continue
+            if opd.unpack_bits:
+                if unpack_bits == 0:
+                    unpack_bits = opd.unpack_bits
+                    pm_bit = opd.pm_bit
+                elif (opd.unpack_bits != unpack_bits or opd.pm_bit != pm_bit):
+                    raise AssembleError('Conflict of unpacking')
 
-def locate_read_operands(add1 = REGISTERS['r0'], add2 = REGISTERS['r0'],
-        mul1 = REGISTERS['r0'], mul2 = REGISTERS['r0']):
+        # Assign input muxes for accumulators.
+        for i, opd in enumerate(operands):
+            if isinstance(opd, Register) and opd.name in ACCUMULATORS:
+                muxes[i] = _INPUT_MUXES[opd.name]
 
-    operands = [add1, add2, mul1, mul2]
-    mux     = [None, None, None, None]
-    raddr_a = None
-    raddr_b = None
-    immed   = False
-    unpack  = 0
-    pm      = 0
+        if all(m is not None for m in muxes):
+            null_addr = REGISTERS['null'].addr
+            return [muxes, null_addr, null_addr, False, unpack_bits, pm_bit]
 
-    for opd in operands:
-        if not isinstance(opd, Register):
-            continue
+        # Locate operands which have to be regfile B register.
+        for i, opd in enumerate(operands):
+            if muxes[i] is not None or not isinstance(opd, Register):
+                continue
+            if opd.spec & _REG_BR and not (opd.spec & _REG_AR):
+                if raddr_b is None:
+                    raddr_b = opd.addr
+                    muxes[i] = _INPUT_MUXES['B']
+                elif raddr_b == opd.addr:
+                    muxes[i] = _INPUT_MUXES['B']
+                else:
+                    raise AssembleError('Too many regfile B source operand')
 
-        if opd.pack_bits:
-            raise AssembleError('Packing of read operand')
-        if opd.unpack_bits:
-            if unpack != 0 and opd.unpack_bits != unpack:
-                raise AssembleError('Multiple unpacking')
-            unpack = opd.unpack_bits
-            pm     = opd.pm_bit
+        # Locate small immediates.
+        for i, opd in enumerate(operands):
+            if muxes[i] is not None or isinstance(opd, Register):
+                continue
 
-    for i, opd in enumerate(operands):
-        # When opd is an accumurator register, raddr_a and raddr_b is not used for it.
-        if isinstance(opd, Register) and opd.name in ACCUMULATORS:
-            mux[i]  = _INPUT_MUXES[opd.name]
+            imm = _SMALL_IMMED[repr(opd)]
+            if small_imm is None:
+                small_imm = imm
+                muxes[i] = _INPUT_MUXES['B']
+            elif small_imm == imm:
+                muxes[i] = _INPUT_MUXES['B']
+            else:
+                raise AssembleError('Too many immediates')
 
-    if all(map(lambda x: x is not None, mux)):
-        return mux + [REGISTERS['null'].addr]*2 + [False, unpack, pm]
+        # Check of raddr_b conflict.
+        if small_imm is not None and raddr_b is not None:
+            raise AssembleError(
+                'Conflict of regfile B source operand and immedaite value'
+                )
+        if small_imm is not None:
+            raddr_b = small_imm
 
-    # Locate operands whose regfile is uniquely specified.
-    for i, opd in enumerate(operands):
-        if mux[i] is not None: continue
+        # Locate operands which have to be regfile A register.
+        for i, opd in enumerate(operands):
+            if muxes[i] is not None:
+                continue
+            if opd.spec & _REG_AR and not (opd.spec & _REG_BR):
+                if raddr_a is None:
+                    raddr_a = opd.addr
+                    muxes[i] = _INPUT_MUXES['A']
+                elif raddr_a == opd.addr:
+                    muxes[i] = _INPUT_MUXES['A']
+                else:
+                    raise AssembleError('Too many regfile A source operand')
 
-        if not isinstance(opd, Register):
-            imm_value = _SMALL_IMMED[repr(opd)]
-            if raddr_b is not None and not (immed and raddr_b == imm_value):
-                raise AssembleError('Too many regfile B operand {}'.format(opd))
-            raddr_b = imm_value
-            mux[i]  = _INPUT_MUXES['B']
-            immed   = True
-        elif (opd.spec & _REG_AR) and not (opd.spec & _REG_BR):
-            if raddr_a is not None and raddr_a != opd.addr:
-                raise AssembleError('Too many regfile A operand {}'.format(opd))
-            raddr_a = opd.addr
-            mux[i]  = _INPUT_MUXES['A']
-        elif not (opd.spec & _REG_AR) and (opd.spec & _REG_BR):
-            if raddr_b is not None and raddr_b != opd.addr:
-                raise AssembleError('Too many regfile B operand {}'.format(opd))
-            raddr_b = opd.addr
-            mux[i]  = _INPUT_MUXES['B']
+        # Locate remaining operands.
+        for i, opd in enumerate(operands):
+            if muxes[i] is not None: continue
 
-    # Locate remaining operands.
-    for i, opd in enumerate(operands):
-        if mux[i] is not None: continue
+            if not (opd.spec & (_REG_AR | _REG_BR)):
+                raise AssembleError('{} can not be a read operand'.format(opd))
 
-        if not (opd.spec & (_REG_AR | _REG_BR)):
-            raise AssembleError('{} can not be used as a read operand'.format(opd))
+            if raddr_a is None:
+                raddr_a = opd.addr
+                muxes[i] = _INPUT_MUXES['A']
+            elif small_imm is None and raddr_b is None:
+                raddr_b = opd.addr
+                muxes[i] = _INPUT_MUXES['B']
+            else:
+                raise AssembleError('Failed to locate operand {}'.format(opd))
 
-        if raddr_a is None and opd.spec & _REG_AR:
-            raddr_a = opd.addr
-            mux[i]  = _INPUT_MUXES['A']
-        elif raddr_b is None and opd.spec & _REG_BR:
-            raddr_b = opd.addr
-            mux[i]  = _INPUT_MUXES['B']
-        else:
-            raise AssembleError('Too many regfile operand {}'.format(opd))
+        if raddr_a is None:
+            raddr_a = REGISTERS['null'].addr
+        if raddr_b is None:
+            raddr_b = REGISTERS['null'].addr
 
-    if raddr_a is None:
-        raddr_a = REGISTERS['null'].addr
-    if raddr_b is None:
-        raddr_b = REGISTERS['null'].addr
+        use_small_imm = (small_imm is not None)
+        return [muxes, raddr_a, raddr_b, use_small_imm, unpack_bits, pm_bit]
 
-    return mux + [raddr_a, raddr_b] + [immed, unpack, pm]
+class AddEmitter(Emitter):
+    'Emitter of Add ALU instructions.'
 
-def locate_write_operands(add_dst = REGISTERS['null'], mul_dst = REGISTERS['null']):
-    pack = 0
-    pm   = False
-    if add_dst.pack_bits:
-        if mul_dst.pack_bits:
-            raise AssembleError('Too many packing')
-        pack = add_dst.pack_bits
-    elif mul_dst.pack_bits:
-        if add_dst.pack_bits:
-            raise AssembleError('Too many packing')
-        pack = mul_dst.pack_bits
-        pm = True
+    def _emit(self, op_add, dst=REGISTERS['null'], opd1=REGISTERS['r0'],
+            opd2=REGISTERS['r0'], sig='no signal', set_flags=True, **kwargs):
 
-    if add_dst.spec & _REG_AW and mul_dst.spec & _REG_BW:
-        return add_dst.addr, mul_dst.addr, False, pack, pm
-    elif mul_dst.spec & _REG_AW and add_dst.spec & _REG_BW:
-        return add_dst.addr, mul_dst.addr, True, pack, pm
-    raise AssembleError('{} and {} are not proper combination of destination registers'.format(add_dst, mul_dst))
+        muxes, raddr_a, raddr_b, immed, unpack, read_pm = \
+                self._encode_read_operands(opd1, opd2)
 
-INSTRUCTION_ALIASES = []
-def syntax_sugar(f):
-    INSTRUCTION_ALIASES.append(f.__name__)
-    return f
+        if immed:
+            if sig != 'no signal':
+                raise AssembleError(
+                        'Signal {} can not be used with immediate'.format(sig))
+            sig = 'alu small imm'
+        sig_bits = _SIGNAL[sig]
 
-class MulInsnEmitter(object):
-    def __init__(self, asm, op_add, add_dst, add_opd1, add_opd2, sig, set_flags):
-        self.asm       = asm
-        self.op_add    = op_add
-        self.add_dst   = add_dst
-        self.add_opd1  = add_opd1
-        self.add_opd2  = add_opd2
-        self.sig       = sig
+        if op_add == _ADD_INSN['nop']:
+            set_flags = False
+
+        waddr_add, waddr_mul, write_swap, pack = \
+                self._encode_write_operands(dst)
+
+        pm = 0
+        if unpack and pack:
+            if read_pm != 0:
+                raise AssembleError('Conflict of packing and unpacking')
+            pm = read_pm
+        elif unpack and not pack:
+            pm = read_pm
+        elif pack and not unpack:
+            pm = 0
+
+        cond_add = _COND[kwargs.get('cond', 'always')]
+        cond_mul = _COND['never']
+
+        insn = AluInsn(
+                sig=sig_bits, unpack=unpack, pm=pm, pack=pack,
+                sf=set_flags, ws=write_swap, cond_add=cond_add,
+                cond_mul=cond_mul, op_add=op_add, op_mul=_MUL_INSN['nop'],
+                waddr_add=waddr_add, waddr_mul=waddr_mul, raddr_a=raddr_a,
+                raddr_b=raddr_b, add_a=muxes[0], add_b=muxes[1],
+                mul_a=muxes[2], mul_b=muxes[3]
+                )
+
+        self.asm._emit(insn)
+
+        # Create MulEmitter which holds arguments of Add ALU for dual
+        # issuing.
+        return MulEmitter(
+                self, op_add=op_add, add_dst=dst, add_opd1=opd1, add_opd2=opd2,
+                cond_add=cond_add, sig=sig, set_flags=set_flags,
+                increment=False, **kwargs)
+
+class MulEmitter(Emitter):
+    """ Emitter of Mul ALU instructions.
+
+    This object receives arguments for Add ALU instruction at its construction
+    to implement dual-issue of Add and Mul ALU.
+    """
+    def __init__(self, asm, op_add=_ADD_INSN['nop'], add_dst=REGISTERS['null'],
+                 add_opd1=REGISTERS['r0'], add_opd2=REGISTERS['r0'],
+                 cond_add=_COND['never'], sig='no signal', set_flags=False,
+                increment=True):
+        self.asm = asm
+        self.op_add = op_add
+        self.add_dst = add_dst
+        self.add_opd1 = add_opd1
+        self.add_opd2 = add_opd2
+        self.cond_add = cond_add
+        self.sig = sig
         self.set_flags = set_flags
+        self.increment = increment
 
-    def assemble(self, op_mul,
-            mul_dst  = REGISTERS['null'],
-            mul_opd1 = REGISTERS['r0'],
-            mul_opd2 = REGISTERS['r0'],
-            rotate   = 0,
-            pack = 'nop'
-            ):
+    def _emit(self, op_mul, mul_dst=REGISTERS['null'], mul_opd1=REGISTERS['r0'],
+            mul_opd2=REGISTERS['r0'], rotate=0, pack='nop', **kwargs):
 
         mul_pack = _MUL_PACK[pack]
 
-        add_a, add_b, mul_a, mul_b, raddr_a, raddr_b, immed, unpack, read_pm =\
-                locate_read_operands(self.add_opd1, self.add_opd2, mul_opd1, mul_opd2)
+        muxes, raddr_a, raddr_b, immed, unpack, read_pm = \
+                self._encode_read_operands(self.add_opd1, self.add_opd2,
+                                           mul_opd1, mul_opd2)
 
-        waddr_add, waddr_mul, write_swap, regA_pack, _ =\
-                locate_write_operands(self.add_dst, mul_dst)
+        waddr_add, waddr_mul, write_swap, regA_pack = \
+                self._encode_write_operands(self.add_dst, mul_dst)
 
         if mul_pack and regA_pack:
             raise AssembleError('Multiple pack operationss')
@@ -550,334 +607,452 @@ class MulInsnEmitter(object):
         write_pm = (mul_pack != 0)
         pack = mul_pack or regA_pack
 
-        if unpack and pack and read_pm != write_pm:
-            raise AssembleError('Invalid combination of packing and unpacking')
+        pm = 0
+        if unpack and pack:
+            if read_pm != write_pm:
+                raise AssembleError('Conflict of packing and unpacking')
+            pm = read_pm
         elif unpack and not pack:
             pm = read_pm
         elif pack and not unpack:
             pm = write_pm
-        else:
-            pm = 0
 
+        sig = self.sig
         if immed or rotate:
-            if self.sig != 'no signal':
-                raise AssembleError('Signal {} can not be used with ALU small immediate instruction'.format(sig))
-            self.sig = 'alu small imm'
-        sig_bits = _SIGNAL[self.sig]
+            if sig != 'no signal':
+                raise AssembleError(
+                        'Signal {} can not be used with immediate'.format(sig))
+            sig = 'alu small imm'
+        sig_bits = _SIGNAL[sig]
 
         if rotate:
-            if immed:
-                raise AssembleError('Rotate operation can not be used with ALU small immediate instruction')
-            if not (0 <= mul_a and mul_a < 3 and 0 <= mul_b and mul_b < 3):
-                raise AssembleError('Rotate operation is only be available when both of mul ALU inputs are taken from r0-r3')
+            if not (0<=muxes[2] and muxes[2]<3 and 0<=muxes[3] and muxes[3]<3):
+                raise AssembleError('Rotate operation is only available when'
+                                    ' inputs are taken from r0-r3')
+
             if rotate == REGISTERS['r5']:
                 raddr_b = 48
             else:
-                if not (1 <= rotate and rotate <= 15):
-                    raise AssembleError('Invalid rotation value {}'.format(rotate))
-                raddr_b = 48 + rotate
-        self.asm.emit(AluInsn(
-            sig       = sig_bits,
-            unpack    = unpack,
-            pm        = pm,
-            pack      = pack,
-            sf        = self.set_flags,
-            ws        = write_swap,
-            cond_add  = 1,
-            cond_mul  = 1,
-            op_add    = self.op_add,
-            op_mul    = op_mul,
-            waddr_add = waddr_add,
-            waddr_mul = waddr_mul,
-            raddr_a   = raddr_a,
-            raddr_b   = raddr_b,
-            add_a     = add_a,
-            add_b     = add_b,
-            mul_a     = mul_a,
-            mul_b     = mul_b
-            ), increment=False)
+                raddr_b = 48 + rotate%16
 
-for name, code in _MUL_INSN.items():
-    setattr(MulInsnEmitter, name, _partialmethod(MulInsnEmitter.assemble, code))
+        cond_add = self.cond_add
+        cond_mul = _COND[kwargs.get('cond', 'always')]
 
-class AddInsnEmitter(Assembler):
-    REGISTERS = REGISTERS
+        insn = AluInsn(
+                sig=sig_bits, unpack=unpack, pm=pm, pack=pack,
+                sf=self.set_flags, ws=write_swap, cond_add=cond_add,
+                cond_mul=cond_mul, op_add=self.op_add, op_mul=op_mul,
+                waddr_add=waddr_add, waddr_mul=waddr_mul, raddr_a=raddr_a,
+                raddr_b=raddr_b, add_a=muxes[0], add_b=muxes[1],
+                mul_a=muxes[2], mul_b=muxes[3]
+                )
+        self.asm._emit(insn, increment=self.increment)
 
-    def encode_imm(self, val):
+class LoadEmitter(Emitter):
+    'Emitter of load instructions.'
+
+    def _encode_imm(self, val):
         if isinstance(val, float):
-            return unpack('L', pack('f', val))[0], 0x0
+            return unpack('L', pack('f', val))[0], 0
         elif isinstance(val, (int, long)):
             fmt = 'l' if val < 0 else 'L'
-            return unpack('L', pack(fmt, val))[0], 0x0
-        elif not isinstance(val, (list, tuple, numpy.ndarray)):
-            raise AssembleError('Unsupported immediate value {}'.format(val))
+            return unpack('L', pack(fmt, val))[0], 0
+        elif isinstance(val, (list, tuple, numpy.ndarray)):
+            return self._encode_per_element_imm(list(val))
+        raise AssembleError('Unsupported immediate value {}'.format(val))
 
-        # per-element immediate
-        values = list(val)
+    def _encode_per_element_imm(self, values):
         if len(values) > 16:
-            raise AssembleError('Too many values {}'.format(val))
+            raise AssembleError('Too many immediate values {}'.format(val))
 
         values.extend([0] * (16-len(values)))
-        signed = any(map(lambda x: x < 0, values))
+        unsigned = any(map(lambda x: x >= 0, values))
         high = 0
         low  = 0
         for i in range(16):
             high <<= 1
             low  <<= 1
             v = values[i]
-            if (signed and (v >= 2 or v < -2)) or (not signed and v >= 4):
-                raise AssembleError('{} is not a 2-bit {} value'.format(v, 'signed' if signed else 'unsigned'))
+
+            if (not unsigned and (v >= 2 or v < -2)) or (unsigned and v >= 4):
+                raise AssembleError('{} is not a 2-bit {}signed value'.format(
+                        v, ['', 'un'][unsigned]))
             high |= (v & 0x2) >> 1
             low  |= v & 0x1
-        return (high << 16) | low, 2*(not signed) + 1
 
+        return (high << 16) | low, 2*unsigned + 1
 
-    @syntax_sugar
-    def ldi(self, *args, **kwargs):
+    def _emit(self, *args, **kwargs):
+        """Load immediate.
+
+        Store ``value`` to the register ``a``.
+        >>> ldi(a, value)
+
+        You can use two destination registers.  ``value`` will be stored to
+        both register ``a`` and ``b``.
+        >>> ldi(a, b, value)
+
+        Available immediate values:
+
+        * signed and unsigned integers.
+        * floating point numbers.
+        * List of 2-bit signed and unsigned integers. Its maximum length is 16.
+
+        The third behaves exceptionally. Values of the list will be stored to
+        each SIMD element one by one. When the length of the list is shorter
+        than 16, 0s will are stored for remaining elements.
+        """
+
         reg1 = args[0]
         if len(args) == 2:
             reg2 = REGISTERS['null']
-            imm  = args[1]
+            imm = args[1]
         else:
             reg2 = args[1]
-            imm  = args[2]
+            imm = args[2]
 
-        if not (reg1.spec & _REG_AW and reg2.spec & _REG_BW):
-            reg1, reg2 = reg2, reg1
-            if not (reg1.spec & _REG_AW):
-                raise AssembleError('{} is not a write register of regfile A'.format(reg1))
-            if not (reg2.spec & _REG_BW):
-                raise AssembleError('{} is not a write register of regfile B'.format(reg2))
+        waddr_add, waddr_mul, write_swap, pack = \
+                self._encode_write_operands(reg1, reg2)
 
-        imm, unpack = self.encode_imm(imm)
-        self.emit(LoadInsn(sig = 0xE, unpack = unpack, pm = 0, pack = 0, cond_add = 1,
-            cond_mul = 1, sf = 0, ws = 0, waddr_add = reg1.addr, waddr_mul = reg2.addr,
-            immediate = imm,))
+        imm, unpack = self._encode_imm(imm)
 
-    def add_insn(self, name, opcode, 
-            dst  = REGISTERS['null'], # destination opdister
-            opd1 = REGISTERS['r0'],   # operand 1
-            opd2 = REGISTERS['r0'],   # operand 2
-            sig  = 'no signal',
-            set_flags = True          # if True Z,N,C flags will be set
-            ):
+        cond_add = cond_mul = _COND['never']
+        if waddr_add != REGISTERS['null'].addr:
+            cond_add = _COND['always']
+        if waddr_mul != REGISTERS['null'].addr:
+            cond_mul = _COND['always']
 
-        add_a, add_b, mul_a, mul_b, raddr_a, raddr_b, immed, unpack, read_pm = \
-                locate_read_operands(opd1, opd2)
+        insn = LoadInsn(
+                sig=0xe, unpack=unpack, pm=0, pack=pack, cond_add=cond_add,
+                cond_mul=cond_mul, sf=0, ws=write_swap,
+                waddr_add=waddr_add, waddr_mul=waddr_mul, immediate=imm
+                )
 
-        if immed:
-            if sig != 'no signal':
-                raise AssembleError('Signal {} can not be used with ALU small immediate instruction'.format(sig))
-            sig = 'alu small imm'
-        sig_bits = _SIGNAL[sig]
+        self.asm._emit(insn)
 
-        if name == 'nop':
-            set_flags = False
+class BranchEmitter(Emitter):
+    'Emitter of branch instructions.'
 
-        waddr_add, waddr_mul, write_swap, pack, write_pm = \
-                locate_write_operands(dst, self.REGISTERS['null'])
+    def _emit(self, cond_br, target=0, reg=None, absolute=True,
+             link=REGISTERS['null']):
 
-        if unpack and pack and read_pm != write_pm:
-            raise AssembleError('Invalid combination of packing and unpacking')
-        elif unpack and not pack:
-            pm = read_pm
-        elif pack and not unpack:
-            pm = write_pm
-        else:
-            pm = 0
-
-        self.emit(AluInsn(sig = sig_bits, unpack = unpack, pm = pm, pack = pack,
-            cond_add = 1, cond_mul = 1, sf = set_flags, ws = write_swap,
-            op_add = opcode, waddr_add = waddr_add, waddr_mul = waddr_mul,
-            raddr_a = raddr_a, raddr_b = raddr_b, add_a = add_a, add_b = add_b,
-            mul_a = mul_a, mul_b = mul_b))
-
-        return MulInsnEmitter(self, op_add = opcode, add_dst = dst,
-            add_opd1 = opd1, add_opd2 = opd2, sig = sig, set_flags = set_flags)
-
-    def mul_insn(self, name, *args, **kwargs):
-        return getattr(self.nop(), name)(*args, **kwargs)
-
-    def branch_insn(self, cond_br, target = 0, reg = None, link = REGISTERS['null']):
         if isinstance(target, basestring):
             self.backpatch_list.append((self.pc, target))
             imm = 0
-            relative = True
         elif isinstance(target, int):
             imm = target
-            relative = False
         else:
-            raise AssembleError('Invalid branch target {}'.format(target))
+            raise AssembleError('Invalid branch target: {}'.format(target))
 
         if reg:
-            if not (reg.spec & _REG_AR):
-                raise AssembleError('Must be regfile A register {}'.format(reg))
+            if (not (reg.spec & _REG_AR) or
+                reg.name not in GENERAL_PURPOSE_REGISTERS):
+                raise AssembleError(
+                    'Must be general purpose regfile A register {}'.format(reg)
+                    )
+            assert(reg.addr < 32)
             raddr_a = reg.addr
             use_reg = True
         else:
             raddr_a = 0
             use_reg = False
 
-        waddr_add, waddr_mul, write_swap, pack, pm = locate_write_operands(link)
-        if pack or pm:
-            raise AssembleError('Packing can not be used with branch instruction')
+        waddr_add, waddr_mul, write_swap, pack = \
+                self._encode_write_operands(link)
 
-        self.emit(BranchInsn(
-            sig = 0xF, cond_br = cond_br, rel = relative, reg = use_reg,
-            raddr_a = raddr_a, ws = write_swap, waddr_add = waddr_add, waddr_mul = waddr_mul,
-            immediate = imm
-            ))
+        if pack:
+            raise AssembleError('Packing is not available for link register')
 
-    @syntax_sugar
-    def label(self, name):
-        if name in self.labels:
-            raise AssembleError('Duplicated labels {}'.format(name))
-        self.labels[name] = self.pc
+        insn = BranchInsn(
+            sig=0xF, cond_br=cond_br, rel=relative, reg=use_reg,
+            raddr_a=raddr_a, ws=write_swap, waddr_add=waddr_add,
+            waddr_mul=waddr_mul, immediate=imm
+            )
 
-    def sema_insn(self, sa, sema_id):
+        self.asm._emit(insn)
+
+class SemaEmitter(Emitter):
+    'Emitter of semaphore instructions.'
+
+    def _emit(self, sa, sema_id):
         if not (0 <= sema_id and sema_id <= 15):
             raise AssembleError('Semaphore id must be in range (1..15)')
 
-        self.emit(SemaInsn(
-            sig = 0xE, unpack = 4, pm = 0, pack = 0, cond_add = 1, cond_mul = 1, sf = 0, ws = 0,
-            waddr_add = 0, waddr_mul = 0, sa = sa, semaphore = sema_id))
+        insn = SemaInsn(
+            sig=0xE, unpack=4, pm=0, pack=0, cond_add=1, cond_mul=1, sf=0,
+            ws=0, waddr_add=0, waddr_mul=0, sa=sa, semaphore=sema_id)
 
-    @syntax_sugar
-    def sema_up(self, sema_id):
-        self.sema_insn(1, sema_id)
+        self.asm._emit(insn)
 
-    @syntax_sugar
-    def sema_down(self, sema_id):
-        self.sema_insn(0, sema_id)
 
-    @syntax_sugar
-    def mov(self, dst, src, **kwargs):
-        return self.bor(dst, src, src, **kwargs)
+#================================= Assembler ==================================
 
-    @syntax_sugar
-    def read(self, src):
-        return self.mov(self.REGISTERS['null'], src)
 
-    @syntax_sugar
-    def write(self, dst):
-        return self.mov(dst, self.REGISTERS['null'])
+class Assembler(object):
+    'QPU Assembler.'
 
-    @syntax_sugar
-    def setup_vpm_write(self, mode = '32bit horizontal', stride = 1, Y = 0, **kwargs):
-        modes      = mode.split()
-        size       = {'8bit': 0, '16bit': 1, '32bit': 2}[modes.pop(0)]
-        laned      = {'packed': 0, 'laned': 1}[modes.pop(0)] if size != 2 else 0
-        horizontal = {'vertical': 0, 'horizontal': 1}[modes.pop(0)]
-        if horizontal:
-            addr = Y << 2 | kwargs.get('B', 0) if size == 0 else \
-                   Y << 1 | kwargs.get('H', 0) if size == 1 else \
-                   Y
+    _REGISTERS = REGISTERS
+
+    def __init__(self):
+        self._instructions = []
+        self._program_counter = 0
+        self._labels = {}
+        self._backpatch_list = []    # list of (instruction index, label)
+
+        self._add = AddEmitter(self)
+        self._mul = MulEmitter(self)
+        self._load = LoadEmitter(self)
+        self._branch = BranchEmitter(self)
+        self._sema = SemaEmitter(self)
+
+    def _emit(self, insn, increment=True):
+        """Emit new instruction ``insn`` if increment is True else replace the
+        last instruction with ``insn``.
+        """
+
+        if increment:
+            self._instructions.append(insn)
+            self._program_counter += 8
         else:
-            X = kwargs.get('X', 0)
-            addr = (Y & 0x30) << 6 | X << 2 | kwargs.get('B', 0) if size == 0 else \
-                   (Y & 0x30) << 5 | X << 1 | kwargs.get('H', 0) if size == 1 else \
-                   (Y & 0x30) << 4 | X
-        self.ldi(self.REGISTERS['vpmvcd_wr_setup'],
-                stride<<12|horizontal<<11|laned<<10|size<<8|addr)
+            self._instructions[-1] = insn
 
-    @syntax_sugar
-    def setup_vpm_read(self, nrows, mode = '32bit horizontal', Y = 0, stride = 1, **kwargs):
-        modes      = mode.split()
-        size       = {'8bit': 0, '16bit': 1, '32bit': 2}[modes.pop(0)]
-        laned      = {'packed': 0, 'laned': 1}[modes.pop(0)] if size != 2 else 0
-        horizontal = {'vertical': 0, 'horizontal': 1}[modes.pop(0)]
-        if horizontal:
-            addr = Y << 2 | kwargs.get('B', 0) if size == 0 else \
-                   Y << 1 | kwargs.get('H', 0) if size == 1 else \
-                   Y
-        else:
-            X = kwargs['X']
-            addr = (Y & 0x30) << 6 | X << 2 | kwargs.get('B', 0) if size == 0 else \
-                   (Y & 0x30) << 5 | X << 1 | kwargs.get('H', 0) if size == 1 else \
-                   (Y & 0x30) << 4 | X
-        self.ldi(self.REGISTERS['vpmvcd_rd_setup'],
-                nrows<<20|stride<<12|horizontal<<11|laned<<10|size<<8|addr)
+    def _emit_add(self, *args, **kwargs):
+        return self._add._emit(*args, **kwargs)
 
-    @syntax_sugar
-    def setup_dma_store(self, nrows, mode = '32bit horizontal', Y = 0, X = 0, ncols = 16,
-            offset = 0):
-        modes = mode.split()
-        modew = 0x4 | offset if modes[0] == '8bit' else \
-                0x2 | offset if modes[0] == '16bit' else \
-                0
-        horizontal = { 'horizontal': 1, 'vertical': 0 }[modes[1]]
-        addr = Y<<4|X
-        self.ldi(self.REGISTERS['vpmvcd_wr_setup'],
-                0x80000000|nrows<<23|ncols<<16|horizontal<<14|addr<<3|modew)
+    def _emit_mul(self, *args, **kwargs):
+        return self._mul._emit(*args, **kwargs)
 
-    @syntax_sugar
-    def setup_dma_load(self, nrows, mode = '32bit horizontal', Y = 0, X = 0, ncols = 16,
-            offset = 0, vpitch = 1, mpitch = 3):
-        modes = mode.split()
-        modew = 0x4 | offset if modes[0] == '8bit' else \
-                0x2 | offset if modes[0] == '16bit' else \
-                0
-        vertical = { 'horizontal': 0, 'vertical': 1 }[modes[1]]
-        addr = Y<<4|X
-        self.ldi(self.REGISTERS['vpmvcd_rd_setup'],
-                0x80000000|modew<<28|mpitch<<24|ncols<<20|nrows<<16|vpitch<<12|vertical<<11|addr)
+    def _emit_load(self, *args, **kwargs):
+        return self._load._emit(*args, **kwargs)
 
-    @syntax_sugar
-    def start_dma_store(self, reg):
-        return self.mov(self.REGISTERS['vpm_st_addr'], reg)
+    def _emit_branch(self, *args, **kwargs):
+        return self._branch._emit(*args, **kwargs)
 
-    @syntax_sugar
-    def start_dma_load(self, reg):
-        return self.mov(self.REGISTERS['vpm_ld_addr'], reg)
+    def _emit_sema(self, *args, **kwargs):
+        return self._sema._emit(*args, **kwargs)
 
-    @syntax_sugar
-    def wait_dma_store(self):
-        return self.bor(self.REGISTERS['null'], self.REGISTERS['vpm_st_wait'],
-                        self.REGISTERS['vpm_st_wait'])
+    def _backpatch(self):
+        'Backpatch immediates of branch _instructions'
 
-    @syntax_sugar
-    def wait_dma_load(self):
-        return self.read(self.REGISTERS['vpm_ld_wait'])
+        for i, label in self._backpatch_list:
+            if label not in self._labels:
+                raise AssembleError('Undefined label {}'.format(label))
 
-    @syntax_sugar
-    def interrupt(self):
-        return self.write(self.REGISTERS['host_interrupt'])
+            insn = self._instructions[i]
+            assert(isinstance(insn, BranchInsn))
+            assert(insn.rel)
 
-    @syntax_sugar
-    def exit(self):
-        self.interrupt()
-        self.nop(sig = 'thread end')
-        self.nop()
-        self.nop()
+            insn.immediate = self._labels[label] - 8*(i + 4)
+        self._backpatch_list = []
+
+    def _get_code(self):
+        'Convert list of _instructions to executable bytes.'
+
+        self._backpatch()
+        return ''.join(insn.to_bytes() for insn in self._instructions)
+
+    def label(self, name):
+        if name in self._labels:
+            raise AssembleError('Duplicated _labels {}'.format(name))
+        self._labels[name] = self._program_counter
+
+
+#=================================== Alias ====================================
 
 for name, code in _ADD_INSN.items():
-    setattr(AddInsnEmitter, name, _partialmethod(AddInsnEmitter.add_insn, name, code))
-    INSTRUCTION_ALIASES.append(name)
+    setattr(Assembler, name, _partialmethod(Assembler._emit_add, code))
 
-for name in _MUL_INSN:
+for name, code in _MUL_INSN.items():
     if name not in _ADD_INSN:
-        setattr(AddInsnEmitter, name, _partialmethod(AddInsnEmitter.mul_insn, name))
-        INSTRUCTION_ALIASES.append(name)
+        setattr(Assembler, name, _partialmethod(Assembler._emit_mul, code))
+    setattr(MulEmitter, name, _partialmethod(MulEmitter._emit, code))
 
 for name, code in _BRANCH_INSN.items():
-    setattr(AddInsnEmitter, name, _partialmethod(AddInsnEmitter.branch_insn, code))
-    INSTRUCTION_ALIASES.append(name)
+    setattr(Assembler, name, _partialmethod(Assembler._emit_branch, code))
 
-SETUP_ASM_LOCALS = ast.parse(
-    '\n'.join(map('{0} = asm.{0}'.format, INSTRUCTION_ALIASES)) + '\n' + 
-    '\n'.join(map('{0} = asm.REGISTERS[\'{0}\']'.format, REGISTERS))
+Assembler.ldi = Assembler._emit_load
+
+def alias(f):
+    setattr(Assembler, f.__name__, f)
+
+@alias
+def mov(asm, dst, src, **kwargs):
+    return asm.bor(dst, src, src, **kwargs)
+
+@alias
+def read(asm, src):
+    return asm.mov(REGISTERS['null'], src)
+
+@alias
+def write(asm, dst):
+    return asm.mov(dst, REGISTERS['r0'])
+
+@alias
+def setup_vpm_read(asm, nrows, mode='32bit horizontal', Y=0, stride=1,
+                   **kwargs):
+    modes = mode.split()
+    size = {'8bit': 0, '16bit': 1, '32bit': 2}[modes.pop(0)]
+    laned = {'packed': 0, 'laned': 1}[modes.pop(0)] if size != 2 else 0
+    horizontal = {'vertical': 0, 'horizontal': 1}[modes.pop(0)]
+    if horizontal:
+        addr = (
+            Y << 2 | kwargs.get('B', 0) if size == 0 else
+            Y << 1 | kwargs.get('H', 0) if size == 1 else
+            Y
+            )
+    else:
+        X = kwargs['X']
+        addr = (
+            (Y & 0x30) << 6 | X << 2 | kwargs.get('B', 0) if size == 0 else
+            (Y & 0x30) << 5 | X << 1 | kwargs.get('H', 0) if size == 1 else
+            (Y & 0x30) << 4 | X
+            )
+
+    asm.ldi(REGISTERS['vpmvcd_rd_setup'],
+            nrows<<20|stride<<12|horizontal<<11|laned<<10|size<<8|addr)
+
+@alias
+def setup_vpm_write(asm, mode='32bit horizontal', stride=1, Y=0, **kwargs):
+    modes = mode.split()
+    size = {'8bit': 0, '16bit': 1, '32bit': 2}[modes.pop(0)]
+    laned = {'packed': 0, 'laned': 1}[modes.pop(0)] if size != 2 else 0
+    horizontal = {'vertical': 0, 'horizontal': 1}[modes.pop(0)]
+    if horizontal:
+        addr = (
+            Y << 2 | kwargs.get('B', 0) if size == 0 else
+            Y << 1 | kwargs.get('H', 0) if size == 1 else
+            Y
+            )
+    else:
+        X = kwargs.get('X', 0)
+        addr = (
+            (Y & 0x30) << 6 | X << 2 | kwargs.get('B', 0) if size == 0 else
+            (Y & 0x30) << 5 | X << 1 | kwargs.get('H', 0) if size == 1 else
+            (Y & 0x30) << 4 | X
+            )
+
+    asm.ldi(REGISTERS['vpmvcd_wr_setup'],
+            stride<<12|horizontal<<11|laned<<10|size<<8|addr)
+
+@alias
+def setup_dma_load(asm, nrows, mode='32bit horizontal', Y=0, X=0, ncols=16,
+                   offset=0, vpitch=1, mpitch=3):
+    modes = mode.split()
+    modew = (
+        0x4 | offset if modes[0] == '8bit' else
+        0x2 | offset if modes[0] == '16bit' else
+        0
+        )
+    vertical = { 'horizontal': 0, 'vertical': 1 }[modes[1]]
+    asm.ldi(REGISTERS['vpmvcd_rd_setup'],
+             0x80000000|modew<<28|mpitch<<24|ncols<<20|nrows<<16|vpitch<<12|
+             vertical<<11|Y<<4|X)
+
+@alias
+def start_dma_load(asm, reg):
+    return asm.mov(REGISTERS['vpm_ld_addr'], reg)
+
+@alias
+def wait_dma_load(asm):
+    return asm.read(REGISTERS['vpm_ld_wait'])
+
+@alias
+def setup_dma_store(asm, nrows, mode='32bit horizontal', Y=0, X=0, ncols=16,
+                    offset=0):
+    modes = mode.split()
+    modew = (
+        0x4 | offset if modes[0] == '8bit' else
+        0x2 | offset if modes[0] == '16bit' else
+        0
+        )
+    horizontal = { 'horizontal': 1, 'vertical': 0 }[modes[1]]
+    asm.ldi(REGISTERS['vpmvcd_wr_setup'],
+            0x80000000|nrows<<23|ncols<<16|horizontal<<14|Y<<7|X<<3|modew)
+
+@alias
+def start_dma_store(asm, reg):
+    return asm.mov(REGISTERS['vpm_st_addr'], reg)
+
+@alias
+def wait_dma_store(asm):
+    return asm.read(REGISTERS['vpm_st_wait'])
+
+@alias
+def interrupt(asm):
+    return asm.write(REGISTERS['host_interrupt'])
+
+@alias
+def exit(asm):
+    asm.interrupt()
+    asm.nop(sig='thread end')
+    asm.nop()
+    asm.nop()
+
+@alias
+def sema_up(asm, sema_id):
+    asm.sema_insn(1, sema_id)
+
+@alias
+def sema_down(asm, sema_id):
+    asm.sema_insn(0, sema_id)
+
+REGISTER_ALIASES = '\n'.join(
+    '{0} = asm._REGISTERS[\'{0}\']'.format(reg)
+    for reg in Assembler._REGISTERS
     )
 
+INSTRUCTION_ALIASES = '\n'.join(
+    '{0} = asm.{0}'.format(f)
+    for f in dir(Assembler)
+    if f[0] != '_'
+    )
+
+SETUP_ASM_ALIASES = ast.parse("""
+# Alias of registers.
+{register_aliases}
+
+# Alias of instructions.
+{instruction_aliases}
+
+""".format(
+        register_aliases=REGISTER_ALIASES,
+        instruction_aliases=INSTRUCTION_ALIASES
+        ))
+
 def qpu(f):
+    """Decorator for writing QPU assembly language.
+
+    To write a QPU assembly program, decorate a function which has a parameter
+    ``asm`` as the first argument with @qpu like this::
+
+        @qpu
+        def code(asm):
+            mov(r0, uniform)
+            iadd(r0, r0, 1)
+
+            ...
+
+            exit()
+
+    This code is equivalent to::
+
+        def code(asm):
+            asm.mov(asm.r0, asm.uniform)
+            asm.iadd(asm.r0, asm.r0, 1)
+
+            ...
+
+            asm.exit()
+    """
     args, _, _, _ = inspect.getargspec(f)
 
     if 'asm' not in args:
-        raise AssembleError('A function decorated with @qpucode must have a parameter named \'asm\'') 
+        raise AssembleError('First argument must be \'asm\'')
 
     tree = ast.parse(inspect.getsource(f))
 
     fundef = tree.body[0]
-    fundef.body = SETUP_ASM_LOCALS.body + fundef.body
+    fundef.body = SETUP_ASM_ALIASES.body + fundef.body
 
     # Remove @qpu decorator to avoid inifinite recursion.
     fundef.decorator_list = [
@@ -892,6 +1067,7 @@ def qpu(f):
     return scope[f.__name__]
 
 def assemble(f, *args, **kwargs):
-    asm = AddInsnEmitter()
+    'Assemble QPU program to byte string.'
+    asm = Assembler()
     f(asm, *args, **kwargs)
-    return asm.get_code()
+    return asm._get_code()
