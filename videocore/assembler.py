@@ -70,7 +70,7 @@ _BRANCH_INSN = {
     }
 
 # Encoding of small immediate values.
-_SMALL_IMMED = {
+_SMALL_IMM = {
     value: code
     for code, value in enumerate(
         [repr(i) for i in range(16)] +       # 0,1,2,..,15
@@ -78,7 +78,7 @@ _SMALL_IMMED = {
         [repr(2.0**i) for i in range(8)] +   # 1.0,2.0,..,128.0
         [repr(2.0**i) for i in range(-8, 0)] # 1.0/256.0,1.0/128.0,..,1.0/2.0
     )}
-_SMALL_IMMED['0.0'] = 0     # 0.0 and 0 have same code
+_SMALL_IMM['0.0'] = 0     # 0.0 and 0 have same code
 
 # Condition codes.
 _COND = {
@@ -462,7 +462,7 @@ class Emitter(object):
             if muxes[i] is not None or isinstance(opd, Register):
                 continue
 
-            imm = _SMALL_IMMED[repr(opd)]
+            imm = _SMALL_IMM[repr(opd)]
             if small_imm is None:
                 small_imm = imm
                 muxes[i] = _INPUT_MUXES['B']
