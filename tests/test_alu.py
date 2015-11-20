@@ -195,3 +195,17 @@ def test_v8sat_ops():
     assert all(np.minimum(u_X[0], u_X[1]) == Y[3])
     assert all(np.maximum(u_X[0], u_X[1]) == Y[4])
 
+
+#============================== Small immediate ===============================
+
+@qpu
+def small_imm_int(asm):
+    mov(r0, vpm)
+    for imm in range(-16, 16):
+        iadd(vpm, r0, imm)
+
+def test_small_imm_int():
+    X = np.array([getrandbits(32) for i in range(16)]).astype('int32')
+    Y = run_code(small_imm_int, X, (32, 16), 'int32')
+    for i, imm in enumerate(range(-16, 16)):
+        assert all(X + imm == Y[i])
