@@ -95,19 +95,19 @@ _INPUT_MUXES = {
 
 # Packing. See Register.pack.
 _PACK = {
-    op: code for code, op in enumerate([
+    op: code
+    for code, op in enumerate([
         'nop', '16a', '16b', 'rep 8', '8a', '8b', '8c', '8d', '32 sat',
         '16a sat', '16b sat', 'rep 8 sat', '8a sat', '8b sat', '8c sat',
         '8d sat'
-        ])
-    }
+    ])}
 
 # Unpacking. See Register.unpack.
 _UNPACK = {
-    op: code for code, op in enumerate([
+    op: code
+    for code, op in enumerate([
         'nop', '16a', '16b', 'rep 8d', '8a', '8b', '8c', '8d'
-        ])
-    }
+    ])}
 
 # Mul ALU packing. See MulInsnEmitter.assemble.
 _MUL_PACK = {
