@@ -64,7 +64,7 @@ def unpack_regA_float(asm):
     for op in ['nop', '16a', '16b', '8a', '8b', '8c', '8d']:
         mov(ra0, vpm)
         nop()
-        fadd(vpm, ra0.unpack(op), 0.0)
+        fmul(vpm, ra0.unpack(op), 1.0)
         nop()
 
 def test_unpack_regA_float():
