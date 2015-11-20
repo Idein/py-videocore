@@ -159,3 +159,11 @@ def too_many_regfile_operands(asm):
 @raises(AssembleError)
 def test_too_many_regfile_operands():
     assemble(too_many_regfile_operands)
+
+@qpu
+def signal_conflict(asm):
+    iadd(r0, r0, 1, sig = 'thread switch')
+
+@raises(AssembleError)
+def test_signal_conflict(asm):
+    assemble(signal_conflict)
