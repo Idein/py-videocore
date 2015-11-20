@@ -162,7 +162,7 @@ def test_pack_conflict_1():
 
 @qpu
 def pack_conflict_2(asm):
-    iadd(ra0.pack('16a'), r0, r1).fmul(ra1, r2, r3, pack='rep 8')
+    iadd(ra0.pack('16a'), r0, r1).fmul(rb0, r2, r3, pack='rep 8')
 
 @raises(AssembleError)
 def test_pack_conflict_2():
