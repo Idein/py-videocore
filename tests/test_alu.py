@@ -1,4 +1,4 @@
-'Test of Add ALU'
+'Test of ALU and load instructions'
 
 import numpy as np
 from random import getrandbits
