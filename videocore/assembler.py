@@ -396,7 +396,7 @@ class Emitter(object):
         if add_dst.pack_bits != 0 and mul_dst.pack_bits != 0:
             raise AssembleError(
                 'Conflict packing of two registers: {} {}'.format(
-                    add_dst, reg_dst))
+                    add_dst, mul_dst))
 
         pack_bits = add_dst.pack_bits or mul_dst.pack_bits
 
