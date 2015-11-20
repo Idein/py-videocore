@@ -80,6 +80,12 @@ _SMALL_IMMED = {
     )}
 _SMALL_IMMED['0.0'] = 0     # 0.0 and 0 have same code
 
+# Condition codes.
+_COND = {
+    name: code
+    for code, name in enumerate([
+        'never', 'always', 'zs', 'zc', 'ns', 'nc', 'cs', 'cc'
+    ])}
 
 # Input multiplexers.
 # 'A' specifies raddr_a. 'B' specifies raddr_b.
