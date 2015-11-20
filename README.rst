@@ -11,7 +11,8 @@ thoroughly to study its architecture.
 
 -  `VideoCore(R) IV 3D Architecture Reference Guide
    (PDF) <https://www.broadcom.com/docs/support/videocore/VideoCoreIV-AG100-R.pdf>`__
-   [#errata]_
+-  `Undocumented behavior and errata List
+   <https://github.com/nineties/py-videocore/blob/master/ERRATA.rst>`__
 
 As far as I know, modern GPGPU programming environments such as OpenCL
 does not exist for  VideoCore. Assembly programming is the only option at
@@ -31,6 +32,7 @@ in the sense that
 -  You can execute the program without ahead-of-time compilation.
 -  You can utilize Python functionality, libraries and tools to organize
    GPU programs.
+
 
 Requirements
 ------------
@@ -88,7 +90,3 @@ License
 Code and documentation are released under `MIT
 license <https://github.com/nineties/py-videocore/blob/master/LICENSE>`__
 
-.. rubric:: Footnotes
-
-.. [#errata] `Errata of reference guide
-   <https://github.com/nineties/py-videocore/blob/master/ERRATA.rst>`__
