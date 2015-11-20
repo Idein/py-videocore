@@ -7,7 +7,7 @@ List of behaviors which seem to be not documented in
 Please contact me when you found following cases.
 
 -  It is documented.
--  It is caused by a bug of the library or firmware.
+-  It is caused by a bug of a library or a firmware.
 
 Writing 0 to element 0 of r0
 ----------------------------
