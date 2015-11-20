@@ -617,7 +617,12 @@ class MulEmitter(Emitter):
         elif pack and not unpack:
             pm = write_pm
 
-        sig = self.sig
+        sig = kwargs.get('sig', 'no signal')
+        if self.sig != 'no signal':
+            if sig != 'no signal':
+                raise AssembleError('Conflict of signals')
+            sig = self.sig
+
         if use_imm or rotate:
             if sig != 'no signal' and sig != 'alu small imm':
                 raise AssembleError(
