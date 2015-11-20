@@ -1,11 +1,13 @@
 'Test of QPU assembler'
 
-from nose.tools import raises
+from nose.tools import raises, assert_raises
 from struct import pack
 from copy import deepcopy
 
 import videocore.assembler as A
 from videocore.assembler import REGISTERS, AssembleError, assemble, qpu
+
+
 
 #=================================== Register =================================
 
@@ -15,22 +17,12 @@ def test_register_names():
         assert(reg.name == name)
         assert(str(reg) == name)
 
-def test_pack_of_regA():
+def test_pack_unpack():
     REGISTERS['ra0'].pack('16a')  # no throw
-
-@raises(AssembleError)
-def test_pack_of_regB():
-    REGISTERS['rb0'].pack('16a')
-
-def test_unpack_of_regA():
+    assert_raises(AssembleError, REGISTERS['rb0'].pack, '16a')
     REGISTERS['ra0'].unpack('16a')  # no throw
-
-def test_unpack_of_r4():
     REGISTERS['r4'].unpack('16a')   # no throw
-
-@raises(AssembleError)
-def test_unpack_of_regB():
-    REGISTERS['rb0'].unpack('16a')
+    assert_raises(AssembleError, REGISTERS['rb0'].unpack, '16a')
 
 #============================ Instruction encoding ============================
 
@@ -92,142 +84,96 @@ def test_ignore_dontcare():
 def dest_reg_conflict(asm):
     iadd(ra0, r0, r1).fmul(ra1, r2, r3)
 
-@raises(AssembleError)
-def test_dest_reg_conflict():
-    assemble(dest_reg_conflict)
-
 @qpu
 def too_many_regA(asm):
     iadd(r0, ra0, ra1)
-
-@raises(AssembleError)
-def test_too_many_regA():
-    assemble(too_many_regA)
 
 @qpu
 def too_many_regB(asm):
     iadd(r0, rb0, rb1)
 
-@raises(AssembleError)
-def test_too_many_regB():
-    assemble(too_many_regB)
-
 @qpu
 def too_many_imm(asm):
     iadd(r0, 1, 2)
-
-@raises(AssembleError)
-def test_too_many_imm():
-    assemble(too_many_imm)
 
 @qpu
 def regB_imm_conflict(asm):
     iadd(r0, rb0, 1)
 
-@raises(AssembleError)
-def test_regB_imm_conflict():
-    assemble(regB_imm_conflict)
-
 @qpu
 def not_read_operand(asm):
     iadd(r0, r0, vpm_ld_addr)
-
-@raises(AssembleError)
-def test_not_read_operand():
-    assemble(not_read_operand)
 
 @qpu
 def too_many_regfile_operands(asm):
     iadd(r0, uniform, varying_read).fmul(r1, element_number, qpu_number)
 
-@raises(AssembleError)
-def test_too_many_regfile_operands():
-    assemble(too_many_regfile_operands)
+def test_operand_conflict():
+    assert_raises(AssembleError, assemble, dest_reg_conflict)
+    assert_raises(AssembleError, assemble, too_many_regA)
+    assert_raises(AssembleError, assemble, too_many_regB)
+    assert_raises(AssembleError, assemble, too_many_imm)
+    assert_raises(AssembleError, assemble, regB_imm_conflict)
+    assert_raises(AssembleError, assemble, not_read_operand)
+    assert_raises(AssembleError, assemble, too_many_regfile_operands)
 
 @qpu
 def signal_imm_conflict_1(asm):
     iadd(r0, r0, 1, sig='thread switch')
 
-@raises(AssembleError)
-def test_signal_imm_conflict_1():
-    assemble(signal_imm_conflict_1)
-
 @qpu
 def signal_imm_conflict_2(asm):
     fmul(r0, r0, 2.0, sig='thread switch')
-
-@raises(AssembleError)
-def test_signal_imm_conflict_2():
-    assemble(signal_imm_conflict_2)
 
 @qpu
 def signal_imm_conflict_3(asm):
     fmul(r0, r0, 2.0, rotate=1)
 
-@raises(AssembleError)
-def test_signal_imm_conflict_3():
-    assemble(signal_imm_conflict_3)
-
 @qpu
 def signal_signal_conflict(asm):
     iadd(r0, r0, r0, sig='thread switch').fmul(r0, r0, r0, sig='breakpoint')
 
-@raises(AssembleError)
-def test_signal_signal_conflict():
-    assemble(signal_signal_conflict)
+def test_signal_conflict():
+    assert_raises(AssembleError, assemble, signal_imm_conflict_1)
+    assert_raises(AssembleError, assemble, signal_imm_conflict_2)
+    assert_raises(AssembleError, assemble, signal_imm_conflict_3)
+    assert_raises(AssembleError, assemble, signal_signal_conflict)
 
 @qpu
 def pack_conflict_1(asm):
     iadd(ra0.pack('16a'), r0, r1).fmul(ra1.pack('16a'), r2, r3)
 
-@raises(AssembleError)
-def test_pack_conflict_1():
-    assemble(pack_conflict_1)
-
 @qpu
 def pack_conflict_2(asm):
     iadd(ra0.pack('16a'), r0, r1).fmul(rb0, r2, r3, pack='rep 8')
-
-@raises(AssembleError)
-def test_pack_conflict_2():
-    assemble(pack_conflict_2)
 
 @qpu
 def unpack_conflict(asm):
     iadd(r0, ra0.unpack('16a'), r4.unpack('16a'))
 
-@raises(AssembleError)
-def test_unpack_conflict():
-    assemble(unpack_conflict)
-
 @qpu
 def pack_unpack_conflict_1(asm):
     iadd(ra0.pack('16a'), r4.unpack('16a'), r0)
-
-@raises(AssembleError)
-def test_pack_unpack_conflict_1():
-    assemble(pack_unpack_conflict_1)
 
 @qpu
 def pack_unpack_conflict_2(asm):
     fmul(r0, ra0.unpack('16a'), r0, pack='8a')
 
-@raises(AssembleError)
-def test_pack_unpack_conflict_2():
-    assemble(pack_unpack_conflict_2)
-
 @qpu
 def pack_unpack_not_conflict_1(asm):
     iadd(ra0.pack('16a'), ra1.unpack('16b'), r0)
-
-def test_pack_unpack_not_conflict_1():
-    assemble(pack_unpack_not_conflict_1)    # no throw
 
 @qpu
 def pack_unpack_not_conflict_2(asm):
     fmul(r0, r4.unpack('16a'), r0, pack='rep 8')
 
-def test_pack_unpack_not_conflict_2():
+def test_pack_unpack_conflict():
+    assert_raises(AssembleError, assemble, pack_conflict_1)
+    assert_raises(AssembleError, assemble, pack_conflict_2)
+    assert_raises(AssembleError, assemble, unpack_conflict)
+    assert_raises(AssembleError, assemble, pack_unpack_conflict_1)
+    assert_raises(AssembleError, assemble, pack_unpack_conflict_2)
+    assemble(pack_unpack_not_conflict_1)    # no throw
     assemble(pack_unpack_not_conflict_2)    # no throw
 
 @qpu
