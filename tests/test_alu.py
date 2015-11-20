@@ -135,18 +135,19 @@ def test_shift_ops():
 def float_ops(asm):
     mov(r0, vpm)
     mov(r1, vpm)
-    for op in ['fadd', 'fsub', 'fmin', 'fmax']:
+    for op in ['fadd', 'fsub', 'fmul', 'fmin', 'fmax']:
         getattr(asm, op)(r2, r0, r1)
         mov(vpm, r2)
 
 def test_float_ops():
     X = np.random.randn(2, 16).astype('float32')
-    Y = run_code(float_ops, X, (4, 16), 'float32')
+    Y = run_code(float_ops, X, (5, 16), 'float32')
 
     assert np.allclose(X[0] + X[1], Y[0], rtol=1e-3)
     assert np.allclose(X[0] - X[1], Y[1], rtol=1e-3)
-    assert all(np.minimum(X[0], X[1]) == Y[2])
-    assert all(np.maximum(X[0], X[1]) == Y[3])
+    assert np.allclose(X[0] * X[1], Y[2], rtol=1e-3)
+    assert all(np.minimum(X[0], X[1]) == Y[3])
+    assert all(np.maximum(X[0], X[1]) == Y[4])
 
 #============================== Type conversion ===============================
 
