@@ -151,7 +151,27 @@ def type_conv(asm):
 def test_type_conv():
     X = np.random.randn(16).astype('float32') * 1000
 
-    Y = run_code(type_conv, X, 2, 'int32')
+    Y = run_code(type_conv, X, (2, 16), 'int32')
 
     assert all(X.astype('int32') == Y[0])
     assert all(X.astype('int32') == np.ndarray(16, 'float32', Y[1]))
+
+#======================== 8-bit saturation arithmetic =========================
+
+@qpu
+def v8sat_ops(asm):
+    mov(r0, vpm)
+    mov(r1, vpm)
+    for op in ['v8adds', 'v8subs']:
+        getattr(asm, op)(r2, r0, r1)
+        mov(vpm, r2)
+
+def test_v8sat_ops():
+    X = np.array(
+            [getrandbits(8) for i in range(2*4*16)]
+            ).reshape(2, 4*16).astype('uint8')
+    Y = run_code(v8sat_ops, X, (2, 4*16), 'uint8')
+
+    X = X.astype('int32')
+    assert all(np.clip(X[0] + X[1], 0, 255) == Y[0])
+    assert all(np.clip(X[0] - X[1], 0, 255) == Y[1])
