@@ -145,12 +145,36 @@ def test_too_many_regfile_operands():
     assemble(too_many_regfile_operands)
 
 @qpu
-def signal_conflict(asm):
+def signal_imm_conflict_1(asm):
     iadd(r0, r0, 1, sig='thread switch')
 
 @raises(AssembleError)
-def test_signal_conflict():
-    assemble(signal_conflict)
+def test_signal_imm_conflict_1():
+    assemble(signal_imm_conflict_1)
+
+@qpu
+def signal_imm_conflict_2(asm):
+    fmul(r0, r0, 2.0, sig='thread switch')
+
+@raises(AssembleError)
+def test_signal_imm_conflict_2():
+    assemble(signal_imm_conflict_2)
+
+@qpu
+def signal_imm_conflict_3(asm):
+    fmul(r0, r0, 2.0, rotate=1)
+
+@raises(AssembleError)
+def test_signal_imm_conflict_3():
+    assemble(signal_imm_conflict_3)
+
+@qpu
+def signal_signal_conflict(asm):
+    iadd(r0, r0, r0, sig='thread switch').fmul(r0, r0, r0, sig='breakpoint')
+
+@raises(AssembleError)
+def test_signal_signal_conflict():
+    assemble(signal_signal_conflict)
 
 @qpu
 def pack_conflict_1(asm):
@@ -205,3 +229,11 @@ def pack_unpack_not_conflict_2(asm):
 
 def test_pack_unpack_not_conflict_2():
     assemble(pack_unpack_not_conflict_2)    # no throw
+
+@qpu
+def invalid_rotate_insn(asm):
+    fmul(r0, ra0, r2, rotate=2)
+
+@raises(AssembleError)
+def test_invalid_rotate_insn():
+    assemble(invalid_rotate_insn)
