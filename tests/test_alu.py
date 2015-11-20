@@ -169,7 +169,9 @@ def test_type_conv():
     assert all(X.astype('int32') == Y[0])
     assert all(X.astype('int32') == np.ndarray(16, 'float32', Y[1]))
 
+
 #======================== 8-bit saturation arithmetic =========================
+
 
 @qpu
 def v8sat_ops(asm):
