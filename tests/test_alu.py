@@ -175,7 +175,7 @@ def test_type_conv():
 def v8sat_ops(asm):
     mov(r0, vpm)
     mov(r1, vpm)
-    for op in ['v8adds', 'v8subs']:
+    for op in ['v8adds', 'v8subs', 'v8muld', 'v8min', 'v8max']:
         getattr(asm, op)(r2, r0, r1)
         mov(vpm, r2)
 
@@ -183,8 +183,13 @@ def test_v8sat_ops():
     X = np.array(
             [getrandbits(8) for i in range(2*4*16)]
             ).reshape(2, 4*16).astype('uint8')
-    Y = run_code(v8sat_ops, X, (2, 4*16), 'uint8')
+    Y = run_code(v8sat_ops, X, (5, 4*16), 'uint8')
 
-    X = X.astype('int32')
-    assert all(np.clip(X[0] + X[1], 0, 255) == Y[0])
-    assert all(np.clip(X[0] - X[1], 0, 255) == Y[1])
+    u_X = X
+    s_X = X.astype('int32')
+    assert all(np.clip(s_X[0] + s_X[1], 0, 255) == Y[0])
+    assert all(np.clip(s_X[0] - s_X[1], 0, 255) == Y[1])
+    assert all(np.abs((s_X[0]*s_X[1]/255.0).astype('int32') - Y[2]) <= 1)
+    assert all(np.minimum(u_X[0], u_X[1]) == Y[3])
+    assert all(np.maximum(u_X[0], u_X[1]) == Y[4])
+
