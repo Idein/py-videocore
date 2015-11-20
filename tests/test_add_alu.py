@@ -96,6 +96,9 @@ def test_bitwise_un_ops():
 
 #============================== Shift operation ===============================
 
+def rotate_right(n, s):
+    return ((n << (32-s)) | (n >> s)) & 0xffffffff
+
 @qpu
 def shift_ops(asm):
     mov(r0, vpm)
@@ -109,5 +112,7 @@ def test_shift_ops():
     X[0] = np.array([getrandbits(32) for i in range(16)])
     X[1] = np.random.randint(0, 32, 16)
     Y = run_code(shift_ops, X, 4, 'uint32')
-    print(np.vectorize(hex)(X))
-    print(np.vectorize(hex)(Y))
+    assert all(X[0] >> X[1] == Y[0])
+    assert all(X[0].astype('int32') >> X[1] == Y[1].astype('int32'))
+    assert all(np.vectorize(rotate_right)(X[0], X[1]) == Y[2])
+    assert all(X[0] << X[1] == Y[3])
