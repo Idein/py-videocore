@@ -127,3 +127,11 @@ def too_many_imm(asm):
 @raises(AssembleError)
 def test_too_many_imm():
     assemble(too_many_imm)
+
+@qpu
+def regB_imm_conflict(asm):
+    iadd(r0, rb0, 1)
+
+@raises(AssembleError)
+def test_regB_imm_conflict():
+    assemble(regB_imm_conflict)
