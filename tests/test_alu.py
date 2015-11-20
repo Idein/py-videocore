@@ -221,3 +221,22 @@ def test_small_imm_float():
     Y = run_code(small_imm_float, X, (16, 16), 'float32')
     for i, e in enumerate(range(-8, 8)):
         assert np.allclose(X * 2.0**e, Y[i], rtol=1e-3)
+
+#=========================== Per-element immediate ============================
+
+PER_ELMT_UNSIGNED_VALUES = np.random.randint(0, 4, 16)
+PER_ELMT_SIGNED_VALUES = np.random.randint(-2, 2, 16)
+
+@qpu
+def per_elmt_imm(asm):
+    mov(r0, vpm)
+    ldi(r1, PER_ELMT_UNSIGNED_VALUES)
+    iadd(vpm, r0, r1)
+    ldi(r2, PER_ELMT_SIGNED_VALUES)
+    iadd(vpm, r0, r2)
+
+def test_per_elmt_imm():
+    X = np.array([getrandbits(32) for i in range(16)]).astype('int32')
+    Y = run_code(per_elmt_imm, X, (2, 16), 'int32')
+    assert all(X + PER_ELMT_UNSIGNED_VALUES == Y[0])
+    assert all(X + PER_ELMT_SIGNED_VALUES == Y[1])

@@ -666,10 +666,10 @@ class LoadEmitter(Emitter):
             raise AssembleError('Too many immediate values {}'.format(val))
 
         values.extend([0] * (16-len(values)))
-        unsigned = any(map(lambda x: x >= 0, values))
+        unsigned = all(map(lambda x: x >= 0, values))
         high = 0
         low  = 0
-        for i in range(16):
+        for i in reversed(range(16)):
             high <<= 1
             low  <<= 1
             v = values[i]
