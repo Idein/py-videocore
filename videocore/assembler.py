@@ -109,7 +109,7 @@ _UNPACK = {
         'nop', '16a', '16b', 'rep 8d', '8a', '8b', '8c', '8d'
     ])}
 
-# Mul ALU packing. See MulInsnEmitter.assemble.
+# Mul ALU packing. See MulEmitter._emit.
 _MUL_PACK = {
     'nop': 0,
     'rep 8': 3,
