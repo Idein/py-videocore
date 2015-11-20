@@ -4,10 +4,10 @@ import numpy as np
 from struct import unpack
 from random import getrandbits
 
-from videocore.assembler import qpucode
+from videocore.assembler import qpu
 from videocore.driver import Driver
 
-@qpucode
+@qpu
 def boilerplate(asm, f, nrows):
     mov(r0, uniform)
 
@@ -36,7 +36,7 @@ def runcode(code, X):
 
 #============================== Regfile-A Unpack ==============================
 
-@qpucode
+@qpu
 def unpack_regA_int(asm):
     for op in ['nop', '16a', '16b', 'rep 8d', '8a', '8b', '8c', '8d']:
         mov(ra0, vpm)
@@ -59,7 +59,7 @@ def test_unpack_regA_int():
     assert all(((X[6]>>16)&0xff) == Y[6])
     assert all(((X[7]>>24)&0xff) == Y[7])
 
-@qpucode
+@qpu
 def unpack_regA_float(asm):
     for op in ['nop', '16a', '16b', '8a', '8b', '8c', '8d']:
         mov(ra0, vpm)
@@ -89,7 +89,7 @@ def test_unpack_regA_float():
 
 #================================= R4 Unpack ==================================
 
-@qpucode
+@qpu
 def unpack_R4(asm):
     # Use TMU for loading data to R4.
     shl(r0, element_number, 2)
@@ -142,7 +142,7 @@ def test_unpack_R4():
 
 # packing without saturation
 
-@qpucode
+@qpu
 def pack_regA_int_no_sat(asm):
     for op in ['nop', '16a', '16b', 'rep 8', '8a', '8b', '8c', '8d']:
         mov(ra0.pack(op), vpm)
@@ -167,7 +167,7 @@ def test_pack_regA_int_no_sat():
 
 # packing with saturation
 
-@qpucode
+@qpu
 def pack_regA_int_sat(asm):
     for op in ['32 sat', '16a sat', '16b sat', 'rep 8 sat', '8a sat',
                '8b sat', '8c sat', '8d sat']:
@@ -198,7 +198,7 @@ def test_pack_regA_int_sat():
     assert all(np.clip(2*X[6].astype('int32'),0,2**8-1) == ((Y[6]>>16)&0xff))
     assert all(np.clip(2*X[7].astype('int32'),0,2**8-1) == ((Y[7]>>24)&0xff))
 
-@qpucode
+@qpu
 def pack_regA_float(asm):
     for op in ['nop', '16a', '16b', '16a sat', '16b sat']:
         mov(ra0, vpm)
@@ -224,7 +224,7 @@ def test_pack_regA_float():
 
 #================================ MUL ALU Pack ================================
 
-@qpucode
+@qpu
 def pack_mul(asm):
     for op in ['rep 8 mul', '8a mul', '8b mul', '8c mul', '8d mul']:
         mov(ra0, vpm)

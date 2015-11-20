@@ -862,7 +862,7 @@ SETUP_ASM_LOCALS = ast.parse(
     '\n'.join(map('{0} = asm.REGISTERS[\'{0}\']'.format, REGISTERS))
     )
 
-def qpucode(f):
+def qpu(f):
     args, _, _, _ = inspect.getargspec(f)
 
     if 'asm' not in args:
@@ -873,10 +873,14 @@ def qpucode(f):
     fundef = tree.body[0]
     fundef.body = SETUP_ASM_LOCALS.body + fundef.body
 
-    # Must remove @qpucode decorator to avoid inifinite recursion.
-    fundef.decorator_list = filter(lambda d: d.id != 'qpucode', fundef.decorator_list)
+    # Remove @qpu decorator to avoid inifinite recursion.
+    fundef.decorator_list = [
+            deco
+            for deco in fundef.decorator_list
+            if deco.id != 'qpu'
+            ]
 
-    code = compile(tree, '<qpucode>', 'exec')
+    code = compile(tree, '<qpu>', 'exec')
     scope = {}
     exec(code, f.__globals__, scope)
     return scope[f.__name__]
