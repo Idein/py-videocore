@@ -146,19 +146,27 @@ def test_too_many_regfile_operands():
 
 @qpu
 def signal_conflict(asm):
-    iadd(r0, r0, 1, sig = 'thread switch')
+    iadd(r0, r0, 1, sig='thread switch')
 
 @raises(AssembleError)
 def test_signal_conflict():
     assemble(signal_conflict)
 
 @qpu
-def pack_conflict(asm):
+def pack_conflict_1(asm):
     iadd(ra0.pack('16a'), r0, r1).fmul(ra1.pack('16a'), r2, r3)
 
 @raises(AssembleError)
-def test_pack_conflict():
-    assemble(pack_conflict)
+def test_pack_conflict_1():
+    assemble(pack_conflict_1)
+
+@qpu
+def pack_conflict_2(asm):
+    iadd(ra0.pack('16a'), r0, r1).fmul(ra1, r2, r3, pack='rep 8')
+
+@raises(AssembleError)
+def test_pack_conflict_2():
+    assemble(pack_conflict_2)
 
 @qpu
 def unpack_conflict(asm):
@@ -168,3 +176,32 @@ def unpack_conflict(asm):
 def test_unpack_conflict():
     assemble(unpack_conflict)
 
+@qpu
+def pack_unpack_conflict_1(asm):
+    iadd(ra0.pack('16a'), r4.unpack('16a'), r0)
+
+@raises(AssembleError)
+def test_pack_unpack_conflict_1():
+    assemble(pack_unpack_conflict_1)
+
+@qpu
+def pack_unpack_conflict_2(asm):
+    fmul(r0, ra0.unpack('16a'), r0, pack='8a')
+
+@raises(AssembleError)
+def test_pack_unpack_conflict_2():
+    assemble(pack_unpack_conflict_2)
+
+@qpu
+def pack_unpack_not_conflict_1(asm):
+    iadd(ra0.pack('16a'), ra1.unpack('16b'), r0)
+
+def test_pack_unpack_not_conflict_1():
+    assemble(pack_unpack_not_conflict_1)    # no throw
+
+@qpu
+def pack_unpack_not_conflict_2(asm):
+    fmul(r0, r4.unpack('16a'), r0, pack='rep 8')
+
+def test_pack_unpack_not_conflict_2():
+    assemble(pack_unpack_not_conflict_2)    # no throw
