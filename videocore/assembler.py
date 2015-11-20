@@ -57,7 +57,7 @@ _ADD_INSN = {
 _MUL_INSN = {
     name: code
     for code, name in enumerate([
-        'nop', 'fmul', 'mul24', 'v8muld', 'v8min', 'v8max', 'v8adds', 'v8subs'
+        'nop', 'fmul', 'imul24', 'v8muld', 'v8min', 'v8max', 'v8adds', 'v8subs'
     ])}
 
 # Branch instructions

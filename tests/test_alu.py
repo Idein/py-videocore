@@ -56,7 +56,7 @@ def test_int_ops():
 def imul24_op(asm):
     mov(r0, vpm)
     mov(r1, vpm)
-    mul24(r2, r0, r1)
+    imul24(r2, r0, r1)
     mov(vpm, r2)
 
 def test_imul24_op():
