@@ -1,4 +1,4 @@
-'Test of pack/unpack functionality'
+'Test of QPU assembler'
 
 from nose.tools import raises
 from struct import pack
