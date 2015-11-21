@@ -210,3 +210,27 @@ def test_invalid_immediate():
     assert_raises(AssembleError, assemble, invalid_per_elmt_immediate_1)
     assert_raises(AssembleError, assemble, invalid_per_elmt_immediate_2)
     assert_raises(AssembleError, assemble, invalid_per_elmt_immediate_3)
+
+@qpu
+def invalid_branch_target(asm):
+    jmp("hello")
+
+@qpu
+def invalid_branch_regfile(asm):
+    jmp(reg=rb0)
+
+@qpu
+def packing_of_link_register(asm):
+    jmp(link=ra0.pack('16a'))
+
+def test_invalid_branch_insn():
+    assert_raises(AssembleError, assemble, invalid_branch_target)
+    assert_raises(AssembleError, assemble, invalid_branch_regfile)
+    assert_raises(AssembleError, assemble, packing_of_link_register)
+
+@qpu
+def invalid_semaphore_insn(asm):
+    sema_up(17)
+
+def test_invalid_sema_insn():
+    assert_raises(AssembleError, assemble, invalid_semaphore_insn)
