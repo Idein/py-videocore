@@ -278,6 +278,35 @@ def test_vector_rotation():
     for i, shift in enumerate(range(-16, 16)):
         assert all(np.roll(X, shift) == Y[i+15])
 
+@qpu
+def add_and_rotation(asm):
+    mov(r0, vpm)
+    mov(r1, vpm)
+    rotate(r2, r0, -1)
+    fadd(r0, r0, r2).rotate(r3, r1, -1)
+    nop()
+    fadd(r1, r1, r3).rotate(r2, r0, -2)
+    nop()
+    fadd(r0, r0, r2).rotate(r3, r1, -2)
+    nop()
+    fadd(r1, r1, r3).rotate(r2, r0, -4)
+    nop()
+    fadd(r0, r0, r2).rotate(r3, r1, -4)
+    nop()
+    fadd(r1, r1, r3).rotate(r2, r0, -8)
+    nop()
+    fadd(r0, r0, r2).rotate(r3, r1, -8)
+    fadd(r1, r1, r3)
+
+    mov(vpm, r0)
+    mov(vpm, r1)
+
+def test_add_and_rotation():
+    X = np.random.randn(2, 16).astype('float32')
+    Y = run_code(add_and_rotation, X, (2, 16), 'float32')
+    assert np.allclose(Y[0], X[0].sum(), rtol=1e-3)
+    assert np.allclose(Y[1], X[1].sum(), rtol=1e-3)
+
 #=============================== Miscellaneous ================================
 
 @qpu
