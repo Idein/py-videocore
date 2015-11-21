@@ -755,7 +755,7 @@ class BranchEmitter(Emitter):
     'Emitter of branch instructions.'
 
     def _emit(self, cond_br, target=0, reg=None, absolute=False,
-             link=REGISTERS['null']):
+              link=REGISTERS['null']):
 
         if isinstance(target, Label):
             target.pinned = False
