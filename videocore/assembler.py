@@ -1033,8 +1033,9 @@ def interrupt(asm):
     return asm.write(REGISTERS['host_interrupt'])
 
 @alias
-def exit(asm):
-    asm.interrupt()
+def exit(asm, interrupt=True):
+    if interrupt:
+        asm.interrupt()
     asm.nop(sig='thread end')
     asm.nop()
     asm.nop()
