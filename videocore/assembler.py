@@ -727,9 +727,11 @@ class LoadEmitter(Emitter):
         if waddr_mul != REGISTERS['null'].addr:
             cond_mul = _COND['always']
 
+        set_flags = kwargs.get('set_flags', False)
+
         insn = LoadInsn(
                 sig=0xe, unpack=unpack, pm=0, pack=pack, cond_add=cond_add,
-                cond_mul=cond_mul, sf=0, ws=write_swap,
+                cond_mul=cond_mul, sf=set_flags, ws=write_swap,
                 waddr_add=waddr_add, waddr_mul=waddr_mul, immediate=imm
                 )
 
