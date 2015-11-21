@@ -567,7 +567,7 @@ class AddEmitter(Emitter):
         return MulEmitter(
                 self.asm, op_add=op_add, add_dst=dst, add_opd1=opd1,
                 add_opd2=opd2, cond_add=cond_add, sig=sig, set_flags=set_flags,
-                increment=False, **kwargs)
+                increment=False)
 
 class MulEmitter(Emitter):
     """ Emitter of Mul ALU instructions.
