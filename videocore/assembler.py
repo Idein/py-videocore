@@ -754,15 +754,17 @@ class LabelEmitter(Emitter):
 class BranchEmitter(Emitter):
     'Emitter of branch instructions.'
 
-    def _emit(self, cond_br, target=0, reg=None, absolute=False,
+    def _emit(self, cond_br, target=None, reg=None, absolute=False,
               link=REGISTERS['null']):
 
-        if isinstance(target, Label):
+        if target is None:
+            imm = 0
+        elif isinstance(target, Label):
             target.pinned = False
             self.asm._add_backpatch_item(target.name)
             imm = 0
         elif isinstance(target, int):
-            imm = 8*(target - 4)
+            imm = target
         else:
             raise AssembleError('Invalid branch target: {}'.format(target))
 
