@@ -36,6 +36,8 @@ def fresh_label():
     LABEL_COUNTER += 1
     return '_' + str(LABEL_COUNTER)
 
+#=============================== Jump condition ===============================
+
 @qpu
 def assert_jump(asm, do_jump, br_insn):
     label = fresh_label()
@@ -170,10 +172,135 @@ def test_jump():
 
     nout = inspect.getsource(jmp_code_2).count('assert_jump')
     X = run_code(qpu(jmp_code_2), nout)
-    for i in range(nout):
-        if not all(X[i] == ASSERT_OK):
-            print i
-        assert all(X[i] == ASSERT_OK)
+    assert np.all(X == ASSERT_OK)
+
+
+#=============================== Link register ================================
+
+@qpu
+def link_register(asm):
+    setup_vpm_write()   # 0x00
+    jmp(L._1, link=r1)  # 0x08
+    nop()               # 0x10
+    nop()               # 0x18
+    nop()               # 0x20 
+    L._1
+    mov(vpm, r1)        # 0x28 (This address is stored to link register)
+
+    setup_dma_store(nrows=1)
+    start_dma_store(uniform)
+    wait_dma_store()
+    exit()
+
+def test_link_register():
+    with Driver() as drv:
+        X = drv.alloc(16, 'uint32')
+        prog = drv.program(link_register)
+        drv.execute(
+                num_threads=1,
+                program=prog,
+                uniforms=[X.address]
+                )
+
+        assert np.all(X == prog.address + 0x28)
+
+#=============================== Relative jump ================================
+
+@qpu
+def jump_imm(asm):
+    mov(r1, 0)
+
+    jmp(2*8)
+    nop()           
+    nop()           
+    nop()           
+    iadd(r1, r1, 1) 
+    iadd(r1, r1, 1) # 1
+    iadd(r1, r1, 1) # 2 (jump comes here)
+    iadd(r1, r1, 1)
+
+    mov(vpm, r1)
+
+def test_jump_imm():
+    X = run_code(jump_imm, 1)
+    assert np.all(X == 2)
+
+@qpu
+def jump_reg(asm):
+    ldi(ra0, 2*8)
+    mov(r1, 0)
+    jmp(reg=ra0)    
+    nop()           
+    nop()           
+    nop()           
+    iadd(r1, r1, 1) #  0
+    iadd(r1, r1, 1) #  1
+    iadd(r1, r1, 1) #  2 (jump comes here)
+    iadd(r1, r1, 1)
+
+    mov(vpm, r1)
+
+def test_jump_reg():
+    X = run_code(jump_reg, 1)
+    assert np.all(X == 2)
+
+@qpu
+def jump_imm_reg(asm):
+    ldi(ra0, 3*8)
+    mov(r1, 0)
+    jmp(L._1, reg=ra0)
+    nop()
+    nop()
+    nop()
+    L._1
+    iadd(r1, r1, 1)
+    iadd(r1, r1, 1) # 1
+    iadd(r1, r1, 1) # 2
+    iadd(r1, r1, 1) # 3 (jump comes here)
+    iadd(r1, r1, 1)
+
+    mov(vpm, r1)
+
+def test_jump_imm_reg():
+    X = run_code(jump_imm_reg, 1)
+    assert np.all(X == 2)
+
+#=============================== Absolute jump ================================
+
+@qpu
+def absolute_jump(asm):
+    setup_vpm_write()
+    jmp(L.subroutine, link=ra0)
+    nop()
+    nop()
+    nop()
+    L._1
+
+    setup_dma_store(nrows=1)    # Jump returnes to here.
+    start_dma_store(uniform)
+    wait_dma_store()
+    exit()
+
+    L.subroutine
+    mov(vpm, ASSERT_OK)
+    jmp(reg=ra0, absolute=True)
+    nop()
+    nop()
+    nop()
+
+def test_absolute_jump():
+    with Driver() as drv:
+        X = drv.alloc(16, 'int32')
+        prog = drv.program(absolute_jump)
+        drv.execute(
+                num_threads=1,
+                program=prog,
+                uniforms=[X.address]
+                )
+
+        assert np.all(X == ASSERT_OK)
+
+#================================= Delay Slot =================================
 
 @qpu
 def delay_slot(asm):
