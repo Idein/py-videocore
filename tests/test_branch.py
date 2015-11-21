@@ -174,3 +174,20 @@ def test_jump():
         if not all(X[i] == ASSERT_OK):
             print i
         assert all(X[i] == ASSERT_OK)
+
+@qpu
+def delay_slot(asm):
+    mov(r1, 0)
+    jmp(L._1)
+    iadd(r1, r1, 1) # executed
+    iadd(r1, r1, 1) # executed
+    iadd(r1, r1, 1) # executed
+    iadd(r1, r1, 1) # not executed
+
+    L._1
+
+    mov(vpm, r1)
+
+def test_delay_slot():
+    X = run_code(delay_slot, 1)
+    assert np.all(X == 3)
