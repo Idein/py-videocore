@@ -802,9 +802,11 @@ class SemaEmitter(Emitter):
         if not (0 <= sema_id and sema_id <= 15):
             raise AssembleError('Semaphore id must be in range (1..15)')
 
+        null_addr = REGISTERS['null'].addr
         insn = SemaInsn(
             sig=0xE, unpack=4, pm=0, pack=0, cond_add=1, cond_mul=1, sf=0,
-            ws=0, waddr_add=0, waddr_mul=0, sa=sa, semaphore=sema_id)
+            ws=0, waddr_add=null_addr, waddr_mul=null_addr, sa=sa,
+            semaphore=sema_id)
 
         self.asm._emit(insn)
 
