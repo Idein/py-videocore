@@ -927,7 +927,8 @@ MulEmitter.rotate = mul_rotate
 
 @alias
 def mov(asm, dst, src, **kwargs):
-    return asm.bor(dst, src, src, set_flags=False, **kwargs)
+    set_flags = kwargs.pop('set_flags', False)
+    return asm.bor(dst, src, src, set_flags=set_flags, **kwargs)
 
 @alias
 def read(asm, src):
