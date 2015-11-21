@@ -762,7 +762,7 @@ class BranchEmitter(Emitter):
             self.asm._add_backpatch_item(target.name)
             imm = 0
         elif isinstance(target, int):
-            imm = target
+            imm = 8*(target - 4)
         else:
             raise AssembleError('Invalid branch target: {}'.format(target))
 
