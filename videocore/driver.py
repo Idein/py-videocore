@@ -165,7 +165,7 @@ class Driver(object):
     def execute(self, num_threads, program, uniforms = None, timeout = 10000):
         if not (1 <= num_threads and num_threads <= self.max_threads):
             raise DriverError('num_threads exceeds max_threads')
-        if uniforms:
+        if uniforms is not None:
             uniforms = self.array(uniforms, dtype = 'u4')
             self.message[:num_threads, 0] = uniforms.addresses.reshape(num_threads, -1)[:, 0]
         else:
