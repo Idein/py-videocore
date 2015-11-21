@@ -223,10 +223,21 @@ def invalid_branch_regfile(asm):
 def packing_of_link_register(asm):
     jmp(link=ra0.pack('16a'))
 
-def test_invalid_branch_insn():
+@qpu
+def duplicated_label(asm):
+    L._1
+    L._1
+
+@qpu
+def undefined_label(asm):
+    jmp(L._1)
+
+def test_assemble_branch_insn():
     assert_raises(AssembleError, assemble, invalid_branch_target)
     assert_raises(AssembleError, assemble, invalid_branch_regfile)
     assert_raises(AssembleError, assemble, packing_of_link_register)
+    assert_raises(AssembleError, assemble, duplicated_label)
+    assert_raises(AssembleError, assemble, undefined_label)
 
 @qpu
 def invalid_semaphore_insn(asm):
