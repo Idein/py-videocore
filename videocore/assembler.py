@@ -735,14 +735,31 @@ class LoadEmitter(Emitter):
 
         self.asm._emit(insn)
 
+class Label(object):
+    def __init__(self, asm, name):
+        self.name = name
+        self.pinned = True
+
+class LabelEmitter(Emitter):
+    'Emitter to provide L.<label name> syntax.'
+
+    def __getitem__(self, name):
+        label = Label(self.asm, name)
+        self.asm._add_label(label)
+        return label
+
+    def __getattr__(self, name):
+        return self[name]
+
 class BranchEmitter(Emitter):
     'Emitter of branch instructions.'
 
     def _emit(self, cond_br, target=0, reg=None, absolute=False,
              link=REGISTERS['null']):
 
-        if isinstance(target, basestring):
-            self.asm._add_backpatch_item(target)
+        if isinstance(target, Label):
+            target.pinned = False
+            self.asm._add_backpatch_item(target.name)
             imm = 0
         elif isinstance(target, int):
             imm = target
@@ -801,7 +818,7 @@ class Assembler(object):
     def __init__(self):
         self._instructions = []
         self._program_counter = 0
-        self._labels = {}
+        self._labels = []
         self._backpatch_list = []    # list of (instruction index, label)
 
         self._add = AddEmitter(self)
@@ -809,6 +826,7 @@ class Assembler(object):
         self._load = LoadEmitter(self)
         self._branch = BranchEmitter(self)
         self._sema = SemaEmitter(self)
+        self.L = LabelEmitter(self)
 
     def _emit(self, insn, increment=True):
         """Emit new instruction ``insn`` if increment is True else replace the
@@ -836,18 +854,35 @@ class Assembler(object):
     def _emit_sema(self, *args, **kwargs):
         return self._sema._emit(*args, **kwargs)
 
+    def _add_label(self, label):
+        self._labels.append((label, self._program_counter))
+
+    def _fix_labels(self):
+        new_labels = []
+        label_dict = {}
+        for label, pc in self._labels:
+            if not label.pinned:
+                continue
+            if label.name in label_dict:
+                raise AssembleError('Duplicated label: {}'.format(label.name))
+            label_dict[label.name] = pc
+            new_labels.append((label, pc))
+        self._labels = new_labels
+        return label_dict
+
     def _backpatch(self):
         'Backpatch immediates of branch _instructions'
 
+        labels = self._fix_labels()
         for i, label in self._backpatch_list:
-            if label not in self._labels:
+            if label not in labels:
                 raise AssembleError('Undefined label {}'.format(label))
 
             insn = self._instructions[i]
             assert(isinstance(insn, BranchInsn))
             assert(insn.rel)
 
-            insn.immediate = self._labels[label] - 8*(i + 4)
+            insn.immediate = labels[label] - 8*(i + 4)
         self._backpatch_list = []
 
     def _add_backpatch_item(self, target):
@@ -858,12 +893,6 @@ class Assembler(object):
 
         self._backpatch()
         return ''.join(insn.to_bytes() for insn in self._instructions)
-
-    def label(self, name):
-        if name in self._labels:
-            raise AssembleError('Duplicated _labels {}'.format(name))
-        self._labels[name] = self._program_counter
-
 
 #=================================== Alias ====================================
 
@@ -894,7 +923,7 @@ MulEmitter.rotate = mul_rotate
 
 @alias
 def mov(asm, dst, src, **kwargs):
-    return asm.bor(dst, src, src, **kwargs)
+    return asm.bor(dst, src, src, set_flags=False, **kwargs)
 
 @alias
 def read(asm, src):
@@ -1031,6 +1060,8 @@ SETUP_ASM_ALIASES = ast.parse("""
 # Alias of instructions.
 {instruction_aliases}
 
+# Label
+L = asm.L
 """.format(
         register_aliases=REGISTER_ALIASES,
         instruction_aliases=INSTRUCTION_ALIASES
