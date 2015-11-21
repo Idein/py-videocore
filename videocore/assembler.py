@@ -1042,11 +1042,11 @@ def exit(asm, interrupt=True):
 
 @alias
 def sema_up(asm, sema_id):
-    asm._emit_sema(1, sema_id)
+    asm._emit_sema(0, sema_id)
 
 @alias
 def sema_down(asm, sema_id):
-    asm._emit_sema(0, sema_id)
+    asm._emit_sema(1, sema_id)
 
 REGISTER_ALIASES = '\n'.join(
     '{0} = asm._REGISTERS[\'{0}\']'.format(reg)
