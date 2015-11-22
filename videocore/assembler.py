@@ -69,7 +69,7 @@ _BRANCH_INSN = {
     ]) if name
     }
 
-# Encoding of small immediate values.
+# Small immediate values.
 _SMALL_IMM = {
     value: code
     for code, value in enumerate(
@@ -193,7 +193,7 @@ class Register(object):
 
         >>> iadd(r0, ra0.unpack('16a'), rb0)
 
-        In case of this example, QPU converts int16, lower 16 bits of ra1, to
+        In case of this example, QPU converts int16, lower 16 bits of ra0, to
         int32 before the addition.  The numbers and characters (abcd) in
         operation codes indicate bits of registers to be converted.  'a' is for
         the least bits and 'd' for the highest.
@@ -998,8 +998,8 @@ def setup_dma_load(asm, nrows, mode='32bit horizontal', Y=0, X=0, ncols=16,
         )
     vertical = { 'horizontal': 0, 'vertical': 1 }[modes[1]]
     asm.ldi(REGISTERS['vpmvcd_rd_setup'],
-             0x80000000|modew<<28|mpitch<<24|ncols<<20|nrows<<16|vpitch<<12|
-             vertical<<11|Y<<4|X)
+            0x80000000|modew<<28|mpitch<<24|ncols<<20|(nrows&0xf)<<16|
+            vpitch<<12|vertical<<11|Y<<4|X)
 
 @alias
 def start_dma_load(asm, reg):
