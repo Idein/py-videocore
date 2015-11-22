@@ -62,7 +62,7 @@ Be Careful
 -  You need to run programs as a super user so that this library can access
    ``/dev/mem``.
 -  Accessing wrong location of ``/dev/mem``, due to a bug of this library or
-   your program, may make your system unstable or coudl break your machine. 
+   your program, may make your system unstable or could break your machine. 
 
 Getting Started
 ---------------
