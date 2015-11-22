@@ -44,7 +44,7 @@ class Memory(object):
             if self.handle == 0:
                 raise DriverError('Failed to allocate QPU device memory')
 
-            self.baseaddr = self.mailbox.lock_memory(self.handle)
+            self.baseaddr = self._to_phys(self.mailbox.lock_memory(self.handle))
             fd = os.open('/dev/mem', os.O_RDWR|os.O_SYNC)
             self.base = mmap.mmap(fd, size, mmap.MAP_SHARED, mmap.PROT_READ|mmap.PROT_WRITE,
                     offset = self.baseaddr)
@@ -64,6 +64,10 @@ class Memory(object):
     def _is_pi2(self):
         rev = self.mailbox.get_board_revision()
         return (rev & 0xffff) == 0x1041
+
+    def _to_phys(self, bus_addr):
+        return bus_addr & ~0xC0000000
+
 
 class Program(object):
     def __init__(self, code_addr, code):
