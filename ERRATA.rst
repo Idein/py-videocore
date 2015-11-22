@@ -4,7 +4,7 @@ Undocumented behavior of hardware
 List of behaviors which seem to be not documented in
 `VideoCore(R) IV 3D Architecture Reference Guide
 <https://www.broadcom.com/docs/support/videocore/VideoCoreIV-AG100-R.pdf>`__.
-Please contact me when you found following cases.
+Please contact me when you find following cases.
 
 -  It is documented.
 -  It is caused by a bug of a library or a firmware.
@@ -35,8 +35,6 @@ this list.
 |        | 6 | 32 -> 8a                  | 6 | 32 -> *8c*                    |
 |        +---+---------------------------+---+-------------------------------+
 |        | 7 | 32 -> 8a                  | 7 | 32 -> *8d*                    |
-+--------+---+---------------------------+---+-------------------------------+
-| 36     | in the range [1.0, 0]         | in the range *[0.0, 1.0]*         |
 +--------+---+---------------------------+---+-------------------------------+
 
 Author
