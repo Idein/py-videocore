@@ -61,8 +61,8 @@ Be Careful
 -  Raspberry Pi 2 is not tested.
 -  You need to run programs as a super user so that this library can access
    ``/dev/mem``.
--  Accessing wrong location of ``/dev/mem``, due to a bug of this library, may
-   make your system unstable or crash it. Reboot in such cases.
+-  Accessing wrong location of ``/dev/mem``, due to a bug of this library or
+   your program, may make your system unstable or coudl break your machine. 
 
 Getting Started
 ---------------
