@@ -1,22 +1,3 @@
-Undocumented behavior of hardware
-=================================
-
-List of behaviors which seem to be not documented in
-`VideoCore(R) IV 3D Architecture Reference Guide
-<https://www.broadcom.com/docs/support/videocore/VideoCoreIV-AG100-R.pdf>`__.
-Please contact me when you find following cases.
-
--  It is documented.
--  It is caused by a bug of a library or a firmware.
-
-Writing 0 to element 0 of r0
-----------------------------
-
--  QPU halts when you write 0 to the element 0 of the accumulator r0.
--  The hardware becomes unstable after this event.
--  See `experiments/write_zero_to_r0.py
-   <https://github.com/nineties/py-videocore/blob/master/experiments/write_zero_to_r0.py>`__.
-
 Errata of 'VideoCore IV Reference Guide'
 ========================================
 

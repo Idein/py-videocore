@@ -92,5 +92,5 @@ license <https://github.com/nineties/py-videocore/blob/master/LICENSE>`__
 
 ----
 
-.. [#errata] `Undocumented behavior and errata List
+.. [#errata] `Errata list of the reference guide.
              <https://github.com/nineties/py-videocore/blob/master/ERRATA.rst>`__

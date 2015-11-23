@@ -933,14 +933,6 @@ def mov(asm, dst, src, **kwargs):
     return asm.bor(dst, src, src, set_flags=set_flags, **kwargs)
 
 @alias
-def read(asm, src):
-    return asm.mov(REGISTERS['null'], src)
-
-@alias
-def write(asm, dst):
-    return asm.mov(dst, REGISTERS['r0'])
-
-@alias
 def setup_vpm_read(asm, nrows, mode='32bit horizontal', Y=0, stride=1,
                    **kwargs):
     modes = mode.split()
@@ -1007,7 +999,7 @@ def start_dma_load(asm, reg):
 
 @alias
 def wait_dma_load(asm):
-    return asm.read(REGISTERS['vpm_ld_wait'])
+    return asm.mov(REGISTERS['null'], REGISTERS['vpm_ld_wait'])
 
 @alias
 def setup_dma_store(asm, nrows, mode='32bit horizontal', Y=0, X=0, ncols=16,
@@ -1028,11 +1020,11 @@ def start_dma_store(asm, reg):
 
 @alias
 def wait_dma_store(asm):
-    return asm.read(REGISTERS['vpm_st_wait'])
+    return asm.mov(REGISTERS['null'], REGISTERS['vpm_st_wait'])
 
 @alias
 def interrupt(asm):
-    return asm.write(REGISTERS['host_interrupt'])
+    return asm.mov(REGISTERS['host_interrupt'], 1)
 
 @alias
 def exit(asm, interrupt=True):
