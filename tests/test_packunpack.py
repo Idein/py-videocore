@@ -9,10 +9,10 @@ from videocore.driver import Driver
 
 @qpu
 def boilerplate(asm, f, nrows):
-    mov(r0, uniform)
+    #mov(rb0, uniform)
 
     setup_dma_load(nrows=nrows)
-    start_dma_load(r0)
+    start_dma_load(uniform)
     wait_dma_load()
     setup_vpm_read(nrows=nrows)
     setup_vpm_write()
@@ -20,19 +20,20 @@ def boilerplate(asm, f, nrows):
     f(asm)
 
     setup_dma_store(nrows=nrows)
-    start_dma_store(r0)
+    start_dma_store(uniform)
     wait_dma_store()
     exit()
 
 def run_code(code, X):
     with Driver() as drv:
         X = drv.copy(X)
+        Y = drv.copy(X)
         drv.execute(
                 num_threads=1,
                 program=drv.program(boilerplate, code, X.shape[0]),
-                uniforms=[X.address]
+                uniforms=[X.address, Y.address]
                 )
-        return np.copy(X)
+        return np.copy(Y)
 
 #============================== Regfile-A Unpack ==============================
 

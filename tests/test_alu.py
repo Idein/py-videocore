@@ -7,11 +7,11 @@ from videocore.assembler import qpu
 from videocore.driver import Driver
 
 @qpu
-def boilerplate(asm, f, nout):
-    setup_dma_load(nrows=2)
+def boilerplate(asm, f, nin, nout):
+    setup_dma_load(nrows=nin)
     start_dma_load(uniform)
     wait_dma_load()
-    setup_vpm_read(nrows=2)
+    setup_vpm_read(nrows=nin)
     setup_vpm_write()
 
     f(asm)
@@ -27,7 +27,8 @@ def run_code(code, X, output_shape, output_type):
         Y = drv.alloc(output_shape, dtype=output_type)
         drv.execute(
                 num_threads=1,
-                program=drv.program(boilerplate, code, output_shape[0]),
+                program=drv.program(boilerplate, code, X.shape[0],
+                                    output_shape[0]),
                 uniforms=[X.address, Y.address]
                 )
         return np.copy(Y)
@@ -95,16 +96,18 @@ def count_leading_zeros(n):
 
 @qpu
 def bitwise_un_ops(asm):
-    mov(r0, vpm)
+    mov(r1, vpm)
     for op in ['bnot', 'clz']:
-        getattr(asm, op)(r1, r0)
-        mov(vpm, r1)
+        getattr(asm, op)(r2, r1)
+        mov(vpm, r2)
 
 def test_bitwise_un_ops():
-    X = np.array([getrandbits(32) for i in range(16)]).astype('uint32')
+    X = np.array(
+            [getrandbits(32) for i in range(16)]
+            ).reshape(1, 16).astype('uint32')
     Y = run_code(bitwise_un_ops, X, (2, 16), 'uint32')
-    assert all(Y[0] == ~X)
-    assert all(Y[1] == np.vectorize(count_leading_zeros)(X))
+    assert all(Y[0] == ~X[0])
+    assert all(Y[1] == np.vectorize(count_leading_zeros)(X[0]))
 
 #============================== Shift operation ===============================
 
@@ -135,19 +138,21 @@ def test_shift_ops():
 def float_ops(asm):
     mov(r0, vpm)
     mov(r1, vpm)
-    for op in ['fadd', 'fsub', 'fmul', 'fmin', 'fmax']:
+    for op in ['fadd', 'fsub', 'fmul', 'fmin', 'fmax', 'fminabs', 'fmaxabs']:
         getattr(asm, op)(r2, r0, r1)
         mov(vpm, r2)
 
 def test_float_ops():
     X = np.random.randn(2, 16).astype('float32')
-    Y = run_code(float_ops, X, (5, 16), 'float32')
+    Y = run_code(float_ops, X, (7, 16), 'float32')
 
     assert np.allclose(X[0] + X[1], Y[0], rtol=1e-3)
     assert np.allclose(X[0] - X[1], Y[1], rtol=1e-3)
     assert np.allclose(X[0] * X[1], Y[2], rtol=1e-3)
     assert all(np.minimum(X[0], X[1]) == Y[3])
     assert all(np.maximum(X[0], X[1]) == Y[4])
+    assert all(np.minimum(np.abs(X[0]), np.abs(X[1])) == Y[5])
+    assert all(np.maximum(np.abs(X[0]), np.abs(X[1])) == Y[6])
 
 #============================== Type conversion ===============================
 
@@ -162,12 +167,12 @@ def type_conv(asm):
     mov(vpm, r2)
 
 def test_type_conv():
-    X = np.random.randn(16).astype('float32') * 1000
+    X = np.random.randn(1, 16).astype('float32') * 1000
 
     Y = run_code(type_conv, X, (2, 16), 'int32')
 
-    assert all(X.astype('int32') == Y[0])
-    assert all(X.astype('int32') == np.ndarray(16, 'float32', Y[1]))
+    assert all(X[0].astype('int32') == Y[0])
+    assert all(X[0].astype('int32') == np.ndarray(16, 'float32', Y[1]))
 
 
 #======================== 8-bit saturation arithmetic =========================
@@ -205,10 +210,12 @@ def small_imm_int(asm):
         iadd(vpm, r0, imm)
 
 def test_small_imm_int():
-    X = np.array([getrandbits(32) for i in range(16)]).astype('int32')
+    X = np.array(
+            [getrandbits(32) for i in range(16)]
+            ).reshape(1, 16).astype('int32')
     Y = run_code(small_imm_int, X, (32, 16), 'int32')
     for i, imm in enumerate(range(-16, 16)):
-        assert all(X + imm == Y[i])
+        assert all(X[0] + imm == Y[i])
 
 @qpu
 def small_imm_float(asm):
@@ -217,25 +224,26 @@ def small_imm_float(asm):
         fmul(vpm, r0, 2.0**e)
 
 def test_small_imm_float():
-    X = np.random.randn(16).astype('float32')
+    X = np.random.randn(1, 16).astype('float32')
     Y = run_code(small_imm_float, X, (16, 16), 'float32')
     for i, e in enumerate(range(-8, 8)):
-        assert np.allclose(X * 2.0**e, Y[i], rtol=1e-3)
+        assert np.allclose(X[0] * 2.0**e, Y[i], rtol=1e-3)
 
 #=============================== Load operation ===============================
 
 @qpu
 def load_two_dest(asm):
-    mov(r1, vpm) # dummy
-    ldi(r1, r2, 0x12345678)
-    mov(vpm, r1)
-    mov(vpm, r2)
+    mov(r1, vpm)
+    ldi(r2, r3, 0x12345678)
+    iadd(vpm, r1, r2)
+    iadd(vpm, r1, r3)
 
 def test_load_two_dest():
-    X = np.ones(16, dtype='uint32')
+    X = np.ones((1, 16), dtype='uint32')
     Y = run_code(load_two_dest, X, (2, 16), 'uint32')
 
-    assert np.all(Y == 0x12345678)
+    assert np.all(X[0] + 0x12345678 == Y[0])
+    assert np.all(X[0] + 0x12345678 == Y[1])
 
 #=========================== Per-element immediate ============================
 
@@ -251,10 +259,12 @@ def per_elmt_imm(asm):
     iadd(vpm, r0, r2)
 
 def test_per_elmt_imm():
-    X = np.array([getrandbits(32) for i in range(16)]).astype('int32')
+    X = np.array(
+            [getrandbits(32) for i in range(16)]
+            ).reshape(1, 16).astype('int32')
     Y = run_code(per_elmt_imm, X, (2, 16), 'int32')
-    assert all(X + PER_ELMT_UNSIGNED_VALUES == Y[0])
-    assert all(X + PER_ELMT_SIGNED_VALUES == Y[1])
+    assert all(X[0] + PER_ELMT_UNSIGNED_VALUES == Y[0])
+    assert all(X[0] + PER_ELMT_SIGNED_VALUES == Y[1])
 
 #============================== Vector rotatoin ===============================
 
@@ -270,13 +280,15 @@ def vector_rotation(asm):
         rotate(vpm, r0, r5)
 
 def test_vector_rotation():
-    X = np.array([getrandbits(32) for i in range(16)]).astype('uint32')
+    X = np.array(
+            [getrandbits(32) for i in range(16)]
+            ).reshape(1, 16).astype('uint32')
     Y = run_code(vector_rotation, X, (15 + 32, 16), 'uint32')
 
     for i, shift in enumerate(range(1, 16)):
-        assert all(np.roll(X, shift) == Y[i])
+        assert all(np.roll(X[0], shift) == Y[i])
     for i, shift in enumerate(range(-16, 16)):
-        assert all(np.roll(X, shift) == Y[i+15])
+        assert all(np.roll(X[0], shift) == Y[i+15])
 
 @qpu
 def add_and_rotation(asm):
@@ -317,7 +329,7 @@ def shared_small_imm(asm):
     mov(vpm, r2)
 
 def test_shared_small_imm():
-    X = np.random.randn(16).astype('float32')
+    X = np.random.randn(1, 16).astype('float32')
     Y = run_code(shared_small_imm, X, (2, 16), 'float32')
-    assert np.allclose(X + 2.0, Y[0], rtol=1e-3)
-    assert np.allclose(X * 2.0, Y[1], rtol=1e-3)
+    assert np.allclose(X[0] + 2.0, Y[0], rtol=1e-3)
+    assert np.allclose(X[0] * 2.0, Y[1], rtol=1e-3)

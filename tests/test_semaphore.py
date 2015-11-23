@@ -7,21 +7,23 @@ from videocore.driver import Driver
 
 @qpu
 def increment_thread(asm, nthreads):
-    vpm_address = ra0
-    thread_id = ra1
+    dma_load_address = ra0
+    dma_store_address = ra1
+    thread_id = ra2
     i = r1
 
     COUNTER_LOCK = 0
     COMPLETED = 1
 
-    mov(vpm_address, uniform)
+    mov(dma_load_address, uniform)
+    mov(dma_store_address, uniform)
     mov(thread_id, uniform, set_flags=True)
     
     jzc(L.skip_load)
     nop(); nop(); nop()
 
     setup_dma_load(nrows=1)
-    start_dma_load(vpm_address)
+    start_dma_load(dma_load_address)
     wait_dma_load()
     sema_up(COUNTER_LOCK)   # Release lock for counter.
 
@@ -53,7 +55,7 @@ def increment_thread(asm, nthreads):
         sema_down(COMPLETED)    # Wait all threads complete. 
 
     setup_dma_store(nrows=1)
-    start_dma_store(vpm_address)
+    start_dma_store(dma_store_address)
     wait_dma_store()
     interrupt()
 
@@ -65,13 +67,15 @@ def test_semaphore():
     with Driver() as drv:
         nthreads = 10
         X = drv.alloc(16, dtype='uint32')
+        Y = drv.alloc(16, dtype='uint32')
         X[:] = 0
-        unifs = np.zeros((nthreads, 2), dtype='uint32')
+        unifs = np.zeros((nthreads, 3), dtype='uint32')
         unifs[:, 0] = X.address
-        unifs[:, 1] = np.arange(nthreads)
+        unifs[:, 1] = Y.address
+        unifs[:, 2] = np.arange(nthreads)
         drv.execute(
             num_threads=nthreads,
             program=drv.program(increment_thread, nthreads),
             uniforms=unifs
             )
-        assert np.all(X == nthreads*10000)
+        assert np.all(Y == nthreads*10000)

@@ -36,6 +36,7 @@ in the sense that
 Requirements
 ------------
 
+-  Raspberry Pi or Pi 2
 -  Python 2.7
 -  NumPy
 -  nose (if you want to run tests)
@@ -58,7 +59,6 @@ You might need to update firmware.
 Be Careful
 ----------
 
--  Raspberry Pi 2 is not tested.
 -  You need to run programs as a super user so that this library can access
    ``/dev/mem``.
 -  Accessing wrong location of ``/dev/mem``, due to a bug of this library or
