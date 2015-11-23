@@ -998,7 +998,7 @@ def setup_dma_load(asm, nrows, mode='32bit horizontal', Y=0, X=0, ncols=16,
         )
     vertical = { 'horizontal': 0, 'vertical': 1 }[modes[1]]
     asm.ldi(REGISTERS['vpmvcd_rd_setup'],
-            0x80000000|modew<<28|mpitch<<24|ncols<<20|(nrows&0xf)<<16|
+            0x80000000|modew<<28|mpitch<<24|(ncols&0xf)<<20|(nrows&0xf)<<16|
             vpitch<<12|vertical<<11|Y<<4|X)
 
 @alias
