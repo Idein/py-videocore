@@ -20,7 +20,7 @@ def hello_world(asm):
     fadd(vpm, r0, r1)
 
     # Store the result vector from VPM to the host memory (address=uniforms[1])
-    setup_dma_store(nrows=2)
+    setup_dma_store(nrows=1)
     start_dma_store(uniform)
     wait_dma_store()
 
