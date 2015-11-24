@@ -56,6 +56,12 @@ You might need to update firmware.
 
     $ sudo rpi-update
 
+You can increase GPU memory size by ``raspi-config``.
+
+::
+
+    $ sudo raspi-config
+
 Be Careful
 ----------
 
