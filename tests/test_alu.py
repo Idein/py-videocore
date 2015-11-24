@@ -146,9 +146,9 @@ def test_float_ops():
     X = np.random.randn(2, 16).astype('float32')
     Y = run_code(float_ops, X, (7, 16), 'float32')
 
-    assert np.allclose(X[0] + X[1], Y[0], rtol=1e-3)
-    assert np.allclose(X[0] - X[1], Y[1], rtol=1e-3)
-    assert np.allclose(X[0] * X[1], Y[2], rtol=1e-3)
+    assert np.allclose(X[0] + X[1], Y[0], rtol=1e-6)
+    assert np.allclose(X[0] - X[1], Y[1], rtol=1e-6)
+    assert np.allclose(X[0] * X[1], Y[2], rtol=1e-6)
     assert all(np.minimum(X[0], X[1]) == Y[3])
     assert all(np.maximum(X[0], X[1]) == Y[4])
     assert all(np.minimum(np.abs(X[0]), np.abs(X[1])) == Y[5])
@@ -227,7 +227,7 @@ def test_small_imm_float():
     X = np.random.randn(1, 16).astype('float32')
     Y = run_code(small_imm_float, X, (16, 16), 'float32')
     for i, e in enumerate(range(-8, 8)):
-        assert np.allclose(X[0] * 2.0**e, Y[i], rtol=1e-3)
+        assert np.allclose(X[0] * 2.0**e, Y[i], rtol=1e-6)
 
 #=============================== Load operation ===============================
 
@@ -316,8 +316,8 @@ def add_and_rotation(asm):
 def test_add_and_rotation():
     X = np.random.randn(2, 16).astype('float32')
     Y = run_code(add_and_rotation, X, (2, 16), 'float32')
-    assert np.allclose(Y[0], X[0].sum(), rtol=1e-3)
-    assert np.allclose(Y[1], X[1].sum(), rtol=1e-3)
+    assert np.allclose(Y[0], X[0].sum(), rtol=1e-5)
+    assert np.allclose(Y[1], X[1].sum(), rtol=1e-5)
 
 #=============================== Miscellaneous ================================
 
@@ -331,5 +331,5 @@ def shared_small_imm(asm):
 def test_shared_small_imm():
     X = np.random.randn(1, 16).astype('float32')
     Y = run_code(shared_small_imm, X, (2, 16), 'float32')
-    assert np.allclose(X[0] + 2.0, Y[0], rtol=1e-3)
-    assert np.allclose(X[0] * 2.0, Y[1], rtol=1e-3)
+    assert np.allclose(X[0] + 2.0, Y[0], rtol=1e-6)
+    assert np.allclose(X[0] * 2.0, Y[1], rtol=1e-6)
