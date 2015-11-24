@@ -1,7 +1,7 @@
 PyVideoCore
 ===========
 
-*This is work in progress project.*
+*This is work in progress project. Backward compatibility is not guaranteed.*
 
 **PyVideoCore** is a Python library for GPGPU on Raspberry Pi boards. The
 Raspberry Pi SoC integrates **Broadcom VideoCore IV** graphics core. It
