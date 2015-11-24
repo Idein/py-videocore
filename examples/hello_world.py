@@ -14,8 +14,9 @@ def hello_world(asm):
     setup_vpm_read(nrows=2)
     setup_vpm_write()
 
-    mov(r0, vpm) # vector a
-    mov(r1, vpm) # vector b
+    # Compute a + b
+    mov(r0, vpm)
+    mov(r1, vpm)
     fadd(vpm, r0, r1)
 
     # Store the result vector from VPM to the host memory (address=uniforms[1])
@@ -31,7 +32,7 @@ with Driver() as drv:
     a = np.random.random(16).astype('float32')
     b = np.random.random(16).astype('float32')
 
-    # Allocate vectors in shared memory for DMA transfer
+    # Copy vectors to shared memory for DMA transfer
     inp = drv.copy(np.r_[a, b])
     out = drv.alloc(16, 'float32')
 
