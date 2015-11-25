@@ -21,13 +21,15 @@ class Array(np.ndarray):
         address = kwargs.pop('address')
         obj = super(Array, cls).__new__(cls, *args, **kwargs)
         obj.address = address
-        obj.addresses = np.arange(
-            obj.address,
-            obj.address + obj.nbytes,
-            obj.itemsize,
-            np.uint32
-            ).reshape(obj.shape)
         return obj
+
+    def addresses(self):
+        return np.arange(
+            self.address,
+            self.address + self.nbytes,
+            self.itemsize,
+            np.uint32
+            ).reshape(self.shape)
 
 class Memory(object):
     def __init__(self, mailbox, size):
@@ -171,7 +173,7 @@ class Driver(object):
             raise DriverError('n_threads exceeds max_threads')
         if uniforms is not None:
             uniforms = self.array(uniforms, dtype = 'u4')
-            self.message[:n_threads, 0] = uniforms.addresses.reshape(n_threads, -1)[:, 0]
+            self.message[:n_threads, 0] = uniforms.addresses().reshape(n_threads, -1)[:, 0]
         else:
             self.message[:n_threads, 0] = 0
 
