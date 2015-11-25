@@ -166,17 +166,17 @@ class Driver(object):
         self.code_pos += len(code)
         return Program(code_addr, code)
 
-    def execute(self, num_threads, program, uniforms = None, timeout = 10000):
-        if not (1 <= num_threads and num_threads <= self.max_threads):
-            raise DriverError('num_threads exceeds max_threads')
+    def execute(self, n_threads, program, uniforms = None, timeout = 10000):
+        if not (1 <= n_threads and n_threads <= self.max_threads):
+            raise DriverError('n_threads exceeds max_threads')
         if uniforms is not None:
             uniforms = self.array(uniforms, dtype = 'u4')
-            self.message[:num_threads, 0] = uniforms.addresses.reshape(num_threads, -1)[:, 0]
+            self.message[:n_threads, 0] = uniforms.addresses.reshape(n_threads, -1)[:, 0]
         else:
-            self.message[:num_threads, 0] = 0
+            self.message[:n_threads, 0] = 0
 
-        self.message[:num_threads, 1] = program.address
+        self.message[:n_threads, 1] = program.address
 
-        r = self.mailbox.execute_qpu(num_threads, self.message.address, 1, timeout)
+        r = self.mailbox.execute_qpu(n_threads, self.message.address, 1, timeout)
         if r > 0:
             raise DriverError('QPU execution timeout')

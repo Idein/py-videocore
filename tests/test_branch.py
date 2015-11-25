@@ -21,7 +21,7 @@ def run_code(code, nout):
     with Driver() as drv:
         X = drv.alloc((nout, 16), 'int32')
         drv.execute(
-                num_threads=1,
+                n_threads=1,
                 program=drv.program(boilerplate, code, nout),
                 uniforms=[X.address]
                 )
@@ -197,7 +197,7 @@ def test_link_register():
         X = drv.alloc(16, 'uint32')
         prog = drv.program(link_register)
         drv.execute(
-                num_threads=1,
+                n_threads=1,
                 program=prog,
                 uniforms=[X.address]
                 )
@@ -293,7 +293,7 @@ def test_absolute_jump():
         X = drv.alloc(16, 'int32')
         prog = drv.program(absolute_jump)
         drv.execute(
-                num_threads=1,
+                n_threads=1,
                 program=prog,
                 uniforms=[X.address]
                 )

@@ -932,6 +932,12 @@ def mov(asm, dst, src, **kwargs):
     set_flags = kwargs.pop('set_flags', False)
     return asm.bor(dst, src, src, set_flags=set_flags, **kwargs)
 
+def mul_mov(self, dst, src, **kwargs):
+    return self.v8min(dst, src, src, **kwargs)
+
+MulEmitter.mov = mul_mov
+
+
 @alias
 def setup_vpm_read(asm, nrows, mode='32bit horizontal', Y=0, stride=1,
                    **kwargs):

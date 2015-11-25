@@ -26,7 +26,7 @@ def run_code(code, X, output_shape, output_type):
         X = drv.copy(X)
         Y = drv.alloc(output_shape, dtype=output_type)
         drv.execute(
-                num_threads=1,
+                n_threads=1,
                 program=drv.program(boilerplate, code, X.shape[0],
                                     output_shape[0]),
                 uniforms=[X.address, Y.address]
@@ -316,8 +316,8 @@ def add_and_rotation(asm):
 def test_add_and_rotation():
     X = np.random.randn(2, 16).astype('float32')
     Y = run_code(add_and_rotation, X, (2, 16), 'float32')
-    assert np.allclose(Y[0], X[0].sum(), rtol=1e-5)
-    assert np.allclose(Y[1], X[1].sum(), rtol=1e-5)
+    assert np.allclose(Y[0], X[0].sum(), rtol=1e-4)
+    assert np.allclose(Y[1], X[1].sum(), rtol=1e-4)
 
 #=============================== Miscellaneous ================================
 

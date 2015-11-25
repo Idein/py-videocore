@@ -25,7 +25,7 @@ def run_code(code, X, nout):
         X = drv.copy(X)
         Y = drv.alloc((nout, 16), dtype='float32')
         drv.execute(
-                num_threads=1,
+                n_threads=1,
                 program=drv.program(boilerplate, code, nout),
                 uniforms=[X.address, Y.address]
                 )
@@ -86,3 +86,4 @@ def test_log_of_negative():
     X = np.random.uniform(-1, 0, 16).astype('float32')
     Y = run_code(log_of_negative, X, 1)
     assert np.allclose(np.log2(np.abs(X)), Y[0], rtol=1e-2)
+

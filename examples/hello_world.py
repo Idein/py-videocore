@@ -38,7 +38,7 @@ with Driver() as drv:
 
     # Run the program
     drv.execute(
-            num_threads=1,
+            n_threads=1,
             program=drv.program(hello_world),
             uniforms=[inp.address, out.address]
             )

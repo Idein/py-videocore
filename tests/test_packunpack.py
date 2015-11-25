@@ -29,7 +29,7 @@ def run_code(code, X):
         X = drv.copy(X)
         Y = drv.copy(X)
         drv.execute(
-                num_threads=1,
+                n_threads=1,
                 program=drv.program(boilerplate, code, X.shape[0]),
                 uniforms=[X.address, Y.address]
                 )
@@ -124,7 +124,7 @@ def test_unpack_R4():
         X = drv.copy(X)
         Y = drv.alloc((7, 16), dtype='uint32')
         drv.execute(
-                num_threads=1,
+                n_threads=1,
                 program=drv.program(unpack_R4),
                 uniforms=[X.address, Y.address]
                 )

@@ -74,7 +74,7 @@ def test_semaphore():
         unifs[:, 1] = Y.address
         unifs[:, 2] = np.arange(nthreads)
         drv.execute(
-            num_threads=nthreads,
+            n_threads=nthreads,
             program=drv.program(increment_thread, nthreads),
             uniforms=unifs
             )
