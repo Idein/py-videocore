@@ -1101,19 +1101,13 @@ def qpu(f):
     args, _, _, _ = inspect.getargspec(f)
 
     if 'asm' not in args:
-        raise AssembleError('First argument must be \'asm\'')
+        raise AssembleError('Argument named \'asm\' is necessary')
 
     tree = ast.parse(inspect.getsource(f))
 
     fundef = tree.body[0]
     fundef.body = SETUP_ASM_ALIASES.body + fundef.body
-
-    # Remove @qpu decorator to avoid inifinite recursion.
-    fundef.decorator_list = [
-            deco
-            for deco in fundef.decorator_list
-            if deco.id != 'qpu'
-            ]
+    fundef.decorator_list = []
 
     code = compile(tree, '<qpu>', 'exec')
     scope = {}
