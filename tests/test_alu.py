@@ -275,7 +275,7 @@ def vector_rotation(asm):
     for shift in range(1, 16):
         rotate(vpm, r0, shift)
     for shift in range(-16, 16):
-        ldi(r5, shift)
+        ldi(r5_elm0, shift)
         nop()
         rotate(vpm, r0, r5)
 
