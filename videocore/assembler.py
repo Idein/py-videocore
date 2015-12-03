@@ -246,6 +246,8 @@ IO_REGISTERS = {
         ('uniform'           , 32 , _REG_AR|_REG_BR),
         ('varying_read'      , 35 , _REG_AR|_REG_BR),
         ('tmu_noswap'        , 36 , _REG_AW|_REG_BW),
+        ('r5_pix0'           , 37 , _REG_AW),
+        ('r5_elm0'           , 37 , _REG_BW),
         ('host_interrupt'    , 38 , _REG_AW|_REG_BW),
         ('element_number'    , 38 , _REG_AR),
         ('qpu_number'        , 38 , _REG_BR),
@@ -295,7 +297,7 @@ ACCUMULATORS = {
         ('r2', 34, _REG_AW|_REG_BW),
         ('r3', 35, _REG_AW|_REG_BW),
         ('r4', -1, 0),
-        ('r5', 37, _REG_AW|_REG_BW),
+        ('r5', -1, 0),
     ]}
 
 REGISTERS = {}
