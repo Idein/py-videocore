@@ -983,7 +983,18 @@ def setup_vpm_write(asm, mode='32bit horizontal', stride=1, Y=0, **kwargs):
             stride<<12|horizontal<<11|laned<<10|size<<8|addr)
 
 @alias
-def setup_dma_load(asm, nrows, mode='32bit horizontal', Y=0, X=0, ncols=16,
+def setup_dma_load_stride(asm, val, tmp_reg=REGISTERS['r0']):
+    if not isinstance(val, int) and val.name == tmp_reg.name:
+        raise AssembleError('setup_dma_store_stride uses \'{}\' internally'
+                            .format(tmp_reg.name))
+    if isinstance(val, int):
+        return asm.ldi(REGISTERS['vpmvcd_rd_setup'], (9<<28) | val)
+    else:
+        asm.ldi(tmp_reg, 9<<28)
+        return asm.bor(REGISTERS['vpmvcd_rd_setup'], tmp_reg, val)
+
+@alias
+def setup_dma_load(asm, nrows=1, ncols=16, mode='32bit horizontal', Y=0, X=0,
                    offset=0, vpitch=1, mpitch=3):
     modes = mode.split()
     modew = (
@@ -997,15 +1008,18 @@ def setup_dma_load(asm, nrows, mode='32bit horizontal', Y=0, X=0, ncols=16,
             vpitch<<12|vertical<<11|Y<<4|X)
 
 @alias
-def start_dma_load(asm, reg):
-    return asm.mov(REGISTERS['vpm_ld_addr'], reg)
+def start_dma_load(asm, reg, rot=0):
+    if rot == 0:
+        return asm.mov(REGISTERS['vpm_ld_addr'], reg)
+    else:
+        return asm.rotate(REGISTERS['vpm_ld_addr'], reg, rot)
 
 @alias
 def wait_dma_load(asm):
     return asm.mov(REGISTERS['null'], REGISTERS['vpm_ld_wait'])
 
 @alias
-def setup_dma_store(asm, nrows, mode='32bit horizontal', Y=0, X=0, ncols=16,
+def setup_dma_store(asm, nrows=1, ncols=16, mode='32bit horizontal', Y=0, X=0,
                     offset=0):
     modes = mode.split()
     modew = (
@@ -1018,8 +1032,22 @@ def setup_dma_store(asm, nrows, mode='32bit horizontal', Y=0, X=0, ncols=16,
             0x80000000|nrows<<23|ncols<<16|horizontal<<14|Y<<7|X<<3|modew)
 
 @alias
-def start_dma_store(asm, reg):
-    return asm.mov(REGISTERS['vpm_st_addr'], reg)
+def setup_dma_store_stride(asm, val, blockmode=False, tmp_reg=REGISTERS['r0']):
+    if not isinstance(val, int) and val.name == tmp_reg.name:
+        raise AssembleError('setup_dma_store_stride uses \'{}\' internally'
+                            .format(tmp_reg.name))
+    if isinstance(val, int):
+        asm.ldi(REGISTERS['vpmvcd_wr_setup'], (3<<30)|(blockmode<<16)|val)
+    else:
+        asm.ldi(tmp_reg, (3<<30)|(blockmode<<16))
+        asm.bor(REGISTERS['vpmvcd_wr_setup'], tmp_reg, val)
+
+@alias
+def start_dma_store(asm, reg, rot=0):
+    if rot == 0:
+        return asm.mov(REGISTERS['vpm_st_addr'], reg)
+    else:
+        return asm.rotate(REGISTERS['vpm_st_addr'], reg, rot)
 
 @alias
 def wait_dma_store(asm):
