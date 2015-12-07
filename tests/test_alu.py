@@ -271,7 +271,7 @@ def test_per_elmt_imm():
 @qpu
 def vector_rotation(asm):
     mov(r0, vpm)
-    ldi(r1, 1.0)
+    nop()
     for shift in range(1, 16):
         rotate(vpm, r0, shift)
     for shift in range(-16, 16):
