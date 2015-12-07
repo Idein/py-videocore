@@ -951,13 +951,13 @@ def setup_vpm_read(asm, nrows, mode='32bit horizontal', Y=0, stride=1,
     else:
         X = kwargs['X']
         addr = (
-            (Y & 0x30) << 6 | X << 2 | kwargs.get('B', 0) if size == 0 else
-            (Y & 0x30) << 5 | X << 1 | kwargs.get('H', 0) if size == 1 else
-            (Y & 0x30) << 4 | X
+            (Y & 0x30) << 2 | X << 2 | kwargs.get('B', 0) if size == 0 else
+            (Y & 0x30) << 1 | X << 1 | kwargs.get('H', 0) if size == 1 else
+            (Y & 0x30) | X
             )
 
     asm.ldi(REGISTERS['vpmvcd_rd_setup'],
-            nrows<<20|stride<<12|horizontal<<11|laned<<10|size<<8|addr)
+            (nrows&0xf)<<20|stride<<12|horizontal<<11|laned<<10|size<<8|addr)
 
 @alias
 def setup_vpm_write(asm, mode='32bit horizontal', stride=1, Y=0, **kwargs):
@@ -974,9 +974,9 @@ def setup_vpm_write(asm, mode='32bit horizontal', stride=1, Y=0, **kwargs):
     else:
         X = kwargs.get('X', 0)
         addr = (
-            (Y & 0x30) << 6 | X << 2 | kwargs.get('B', 0) if size == 0 else
-            (Y & 0x30) << 5 | X << 1 | kwargs.get('H', 0) if size == 1 else
-            (Y & 0x30) << 4 | X
+            (Y & 0x30) << 2 | X << 2 | kwargs.get('B', 0) if size == 0 else
+            (Y & 0x30) << 1 | X << 1 | kwargs.get('H', 0) if size == 1 else
+            (Y & 0x30) | X
             )
 
     asm.ldi(REGISTERS['vpmvcd_wr_setup'],
