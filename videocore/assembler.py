@@ -723,12 +723,7 @@ class LoadEmitter(Emitter):
 
         imm, unpack = self._encode_imm(imm)
 
-        cond_add = cond_mul = _COND['never']
-        if waddr_add != REGISTERS['null'].addr:
-            cond_add = _COND['always']
-        if waddr_mul != REGISTERS['null'].addr:
-            cond_mul = _COND['always']
-
+        cond_add = cond_mul = _COND[kwargs.get('cond', 'always')]
         set_flags = kwargs.get('set_flags', False)
 
         insn = LoadInsn(
