@@ -84,8 +84,6 @@ def test_horizontal_32bit_stride_load():
                 program=drv.program(horizontal_32bit_stride_load),
                 uniforms=[X.address, Y.address]
                 )
-        print X[:, :16]
-        print Y
         assert np.all(X[:, :16] == Y)
 
 @qpu
