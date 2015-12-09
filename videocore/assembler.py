@@ -1029,7 +1029,8 @@ def setup_dma_store(asm, nrows=1, ncols=16, mode='32bit horizontal', Y=0, X=0,
         )
     horizontal = { 'horizontal': 1, 'vertical': 0 }[modes[1]]
     asm.ldi(REGISTERS['vpmvcd_wr_setup'],
-            0x80000000|nrows<<23|ncols<<16|horizontal<<14|Y<<7|X<<3|modew)
+            0x80000000|(nrows&0x7f)<<23|(ncols&0x7f)<<16|horizontal<<14|Y<<7|
+            X<<3|modew)
 
 @alias
 def setup_dma_store_stride(asm, val, blockmode=False, tmp_reg=REGISTERS['r0']):
