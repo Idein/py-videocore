@@ -1,7 +1,6 @@
 'Test of DMA load and store'
 
 import numpy as np
-from random import getrandbits
 
 from videocore.assembler import qpu
 from videocore.driver import Driver
