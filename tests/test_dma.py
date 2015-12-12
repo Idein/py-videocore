@@ -31,7 +31,7 @@ def test_horizontal_32bit_load():
         drv.execute(
                 n_threads=1,
                 program=drv.program(horizontal_32bit_load),
-                uniforms=[X.address, Y.address]
+                uniforms=[X.address(0, 0), Y.address(0, 0)]
                 )
         assert np.all(X == Y)
 
@@ -59,7 +59,7 @@ def test_vertical_32bit_load():
         drv.execute(
                 n_threads=1,
                 program=drv.program(vertical_32bit_load),
-                uniforms=[X.address, Y.address]
+                uniforms=[X.address(0, 0), Y.address(0, 0)]
                 )
 
         assert np.all(X == Y.T)
@@ -94,7 +94,7 @@ def test_vertical_32bit_store():
         drv.execute(
                 n_threads=1,
                 program=drv.program(vertical_32bit_store),
-                uniforms=[X.address, Y.address]
+                uniforms=[X.address(0, 0), Y.address(0, 0)]
                 )
 
         assert np.all(X == Y.T)
@@ -120,7 +120,7 @@ def test_horizontal_32bit_partial():
         drv.execute(
                 n_threads=1,
                 program=drv.program(horizontal_32bit_partial),
-                uniforms=[X.address, Y.address]
+                uniforms=[X.address(0, 0), Y.address(0, 0)]
                 )
         assert np.all(X == Y[4:12, 4:12])
 
@@ -145,7 +145,7 @@ def test_horizontal_32bit_stride_load():
         drv.execute(
                 n_threads=1,
                 program=drv.program(horizontal_32bit_stride_load),
-                uniforms=[X.address, Y.address]
+                uniforms=[X.address(0, 0), Y.address(0, 0)]
                 )
         assert np.all(X[:, :16] == Y)
 
@@ -172,6 +172,6 @@ def test_horizontal_32bit_stride_store():
         drv.execute(
                 n_threads=1,
                 program=drv.program(horizontal_32bit_stride_store),
-                uniforms=[X.address, Y.address]
+                uniforms=[X.address(0, 0), Y.address(0, 0)]
                 )
         assert np.all(X == Y[:, :16])

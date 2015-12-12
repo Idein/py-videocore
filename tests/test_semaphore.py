@@ -70,8 +70,8 @@ def test_semaphore():
         Y = drv.alloc(16, dtype='uint32')
         X[:] = 0
         unifs = np.zeros((nthreads, 3), dtype='uint32')
-        unifs[:, 0] = X.address
-        unifs[:, 1] = Y.address
+        unifs[:, 0] = X.address(0)
+        unifs[:, 1] = Y.address(0)
         unifs[:, 2] = np.arange(nthreads)
         drv.execute(
             n_threads=nthreads,

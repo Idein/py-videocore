@@ -31,7 +31,7 @@ def run_code(code, X):
         drv.execute(
                 n_threads=1,
                 program=drv.program(boilerplate, code, X.shape[0]),
-                uniforms=[X.address, Y.address]
+                uniforms=[X.address(0, 0), Y.address(0, 0)]
                 )
         return np.copy(Y)
 
@@ -126,7 +126,7 @@ def test_unpack_R4():
         drv.execute(
                 n_threads=1,
                 program=drv.program(unpack_R4),
-                uniforms=[X.address, Y.address]
+                uniforms=[X.address(0, 0), Y.address(0, 0)]
                 )
         X = np.copy(X)
         Y = np.copy(Y)

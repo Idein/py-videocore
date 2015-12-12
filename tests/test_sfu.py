@@ -27,7 +27,7 @@ def run_code(code, X, nout):
         drv.execute(
                 n_threads=1,
                 program=drv.program(boilerplate, code, nout),
-                uniforms=[X.address, Y.address]
+                uniforms=[X.address(0, 0), Y.address(0, 0)]
                 )
         return np.copy(Y)
 
