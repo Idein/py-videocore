@@ -146,8 +146,4 @@ def test_vertical_32bit_write():
                 uniforms=[X.address, Y.address]
                 )
 
-        np.set_printoptions(threshold=np.nan)
-        print X
-        print Y
-
         assert np.all(X[:16] == Y)
