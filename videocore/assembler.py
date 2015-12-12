@@ -247,7 +247,7 @@ IO_REGISTERS = {
         ('varying_read'      , 35 , _REG_AR|_REG_BR),
         ('tmu_noswap'        , 36 , _REG_AW|_REG_BW),
         ('r5_pix0'           , 37 , _REG_AW),
-        ('broadcast'          , 37 , _REG_BW),
+        ('broadcast'         , 37 , _REG_BW),
         ('host_interrupt'    , 38 , _REG_AW|_REG_BW),
         ('element_number'    , 38 , _REG_AR),
         ('qpu_number'        , 38 , _REG_BR),
