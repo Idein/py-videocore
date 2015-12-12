@@ -273,8 +273,7 @@ IO_REGISTERS = {
         ('vpm_st_wait'       , 50 , _REG_BR),
         ('vpm_ld_addr'       , 50 , _REG_AW),
         ('vpm_st_addr'       , 50 , _REG_BW),
-        ('mutex_acquire'     , 51 , _REG_AR|_REG_BR),
-        ('mutex_release'     , 51 , _REG_AW|_REG_BW),
+        ('mutex'             , 51 , _REG_AR|_REG_BR|_REG_AW|_REG_BW),
         ('sfu_recip'         , 52 , _REG_AW|_REG_BW),
         ('sfu_recipsqrt'     , 53 , _REG_AW|_REG_BW),
         ('sfu_exp2'          , 54 , _REG_AW|_REG_BW),
@@ -934,6 +933,13 @@ def mul_mov(self, dst, src, **kwargs):
 
 MulEmitter.mov = mul_mov
 
+@alias
+def mutex_acquire(asm):
+    return mov(REGISTERS['null'], asm.mutex)
+
+@alias
+def mutex_release(asm):
+    return mov(asm.mutex, REGISTERS['null'])
 
 @alias
 def setup_vpm_read(asm, nrows, mode='32bit horizontal', Y=0, stride=1,
