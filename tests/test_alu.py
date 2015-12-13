@@ -29,7 +29,7 @@ def run_code(code, X, output_shape, output_type):
                 n_threads=1,
                 program=drv.program(boilerplate, code, X.shape[0],
                                     output_shape[0]),
-                uniforms=[X.address(0, 0), Y.address(0, 0)]
+                uniforms=[X.address, Y.address]
                 )
         return np.copy(Y)
 

@@ -20,11 +20,16 @@ class Array(np.ndarray):
     def __new__(cls, *args, **kwargs):
         address = kwargs.pop('address')
         obj = super(Array, cls).__new__(cls, *args, **kwargs)
-        obj._address = address
+        obj.address = address
         return obj
 
-    def address(self, *args):
-        return self._address + sum(np.array(args) * self.strides)
+    def addresses(self):
+        return np.arange(
+            self.address,
+            self.address + self.nbytes,
+            self.itemsize,
+            np.uint32
+            ).reshape(self.shape)
 
 class Memory(object):
     def __init__(self, mailbox, size):
@@ -169,14 +174,12 @@ class Driver(object):
         if uniforms is not None:
             if not isinstance(uniforms, Array):
                 uniforms = self.array(uniforms, dtype = 'u4')
-            self.message[:n_threads, 0] = [
-                    uniforms.address(i, 0) for i in range(n_threads)
-                    ]
+            self.message[:n_threads, 0] = uniforms.addresses().reshape(n_threads, -1)[:, 0]
         else:
             self.message[:n_threads, 0] = 0
 
         self.message[:n_threads, 1] = program.address
 
-        r = self.mailbox.execute_qpu(n_threads, self.message.address(0, 0), 1, timeout)
+        r = self.mailbox.execute_qpu(n_threads, self.message.address, 1, timeout)
         if r > 0:
             raise DriverError('QPU execution timeout')

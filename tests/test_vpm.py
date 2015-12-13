@@ -37,7 +37,7 @@ def test_horizontal_32bit_read():
         drv.execute(
                 n_threads=1,
                 program=drv.program(horizontal_32bit_read),
-                uniforms=[X.address(0, 0), Y.address(0, 0)]
+                uniforms=[X.address, Y.address]
                 )
 
         assert np.all(X[16:32] == Y)
@@ -72,7 +72,7 @@ def test_horizontal_32bit_write():
         drv.execute(
                 n_threads=1,
                 program=drv.program(horizontal_32bit_write),
-                uniforms=[X.address(0, 0), Y.address(0, 0)]
+                uniforms=[X.address, Y.address]
                 )
 
 
@@ -108,7 +108,7 @@ def test_vertical_32bit_read():
         drv.execute(
                 n_threads=1,
                 program=drv.program(vertical_32bit_read),
-                uniforms=[X.address(0, 0), Y.address(0, 0)]
+                uniforms=[X.address, Y.address]
                 )
 
         assert np.all(X[16:32] == Y)
@@ -143,7 +143,7 @@ def test_vertical_32bit_write():
         drv.execute(
                 n_threads=1,
                 program=drv.program(vertical_32bit_write),
-                uniforms=[X.address(0, 0), Y.address(0, 0)]
+                uniforms=[X.address, Y.address]
                 )
 
         assert np.all(X[:16] == Y)

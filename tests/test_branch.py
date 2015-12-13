@@ -23,7 +23,7 @@ def run_code(code, nout):
         drv.execute(
                 n_threads=1,
                 program=drv.program(boilerplate, code, nout),
-                uniforms=[X.address(0, 0)]
+                uniforms=[X.address]
                 )
         return np.copy(X)
 
@@ -199,7 +199,7 @@ def test_link_register():
         drv.execute(
                 n_threads=1,
                 program=prog,
-                uniforms=[X.address(0)]
+                uniforms=[X.address]
                 )
 
         assert np.all(X == prog.address + 0x28)
@@ -295,7 +295,7 @@ def test_absolute_jump():
         drv.execute(
                 n_threads=1,
                 program=prog,
-                uniforms=[X.address(0)]
+                uniforms=[X.address]
                 )
 
         assert np.all(X == ASSERT_OK)
