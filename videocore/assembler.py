@@ -935,11 +935,11 @@ MulEmitter.mov = mul_mov
 
 @alias
 def mutex_acquire(asm):
-    return mov(REGISTERS['null'], asm.mutex)
+    return asm.mov(REGISTERS['null'], REGISTERS['mutex'])
 
 @alias
 def mutex_release(asm):
-    return mov(asm.mutex, REGISTERS['null'])
+    return asm.mov(REGISTERS['mutex'], REGISTERS['null'])
 
 @alias
 def setup_vpm_read(asm, nrows, mode='32bit horizontal', Y=0, stride=1,
