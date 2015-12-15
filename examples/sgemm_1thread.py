@@ -635,5 +635,5 @@ if __name__ == '__main__':
                 elapsed_ref, Gflops(elapsed_ref))
         print 'GPU version: {:.4f} sec, {:.4f} Gflops'.format(
                 elapsed_gpu, Gflops(elapsed_gpu))
-        print 'maximum absolute error: {:.4e}'.format(
+        print 'mean absolute error: {:.4e}'.format(
                 float(np.mean(np.abs(R - C))))
