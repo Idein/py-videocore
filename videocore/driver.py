@@ -180,6 +180,6 @@ class Driver(object):
 
         self.message[:n_threads, 1] = program.address
 
-        r = self.mailbox.execute_qpu(n_threads, self.message.address, 1, timeout)
+        r = self.mailbox.execute_qpu(n_threads, self.message.address, 0, timeout)
         if r > 0:
             raise DriverError('QPU execution timeout')
