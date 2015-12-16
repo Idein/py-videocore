@@ -1068,7 +1068,15 @@ def interrupt(asm):
 def exit(asm, interrupt=True):
     if interrupt:
         asm.interrupt()
-    asm.nop(sig='thread end')
+
+    # The instruction signaling program end must not attempt to write to either
+    # of the physical A or B register files. (Reference guide Page 22)
+    asm.mov(
+        REGISTERS['r0'], REGISTERS['r0'], sig='thread end'
+        ).mov(
+        REGISTERS['r0'], REGISTERS['r0']
+        )
+
     asm.nop()
     asm.nop()
 
