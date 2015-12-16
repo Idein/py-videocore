@@ -994,7 +994,7 @@ def setup_dma_load_stride(asm, val, tmp_reg=REGISTERS['r0']):
         raise AssembleError('setup_dma_store_stride uses \'{}\' internally'
                             .format(tmp_reg.name))
     if isinstance(val, int):
-        return asm.ldi(REGISTERS['vpmvcd_rd_setup'], (9<<28) | val)
+        return asm.ldi(REGISTERS['vpmvcd_rd_setup'], (9<<28)|val)
     else:
         asm.ldi(tmp_reg, 9<<28)
         return asm.bor(REGISTERS['vpmvcd_rd_setup'], tmp_reg, val)
