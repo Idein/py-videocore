@@ -95,6 +95,7 @@ In japanese.
 
 - `Raspberry PiでGPGPU <http://qiita.com/9_ties/items/2e85318989170f967e4b>`__
 - `Raspberry PiのGPUで行列乗算(その1) <http://qiita.com/9_ties/items/15ab7fa198991a61a3a9>`__
+- `Raspberry PiのGPUで行列乗算(その2) <http://qiita.com/9_ties/items/e0fdd165c1c7df6bb8ee>`__
 
 License
 -------
