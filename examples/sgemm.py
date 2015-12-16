@@ -614,13 +614,13 @@ if __name__ == '__main__':
         q = 363
         r = 3072
 
-        p_div = 6
-        r_div = 2
+        p_div = 2
+        r_div = 6
         n_threads = p_div * r_div
 
-        assert(p%16 == 0)
+        assert(p%16 == 0 and p >= p_div*16)
         assert(q >= 2)
-        assert(r%64 == 0)
+        assert(r%64 == 0 and r >= r_div*64)
 
         # Allocate matrices.
         C = drv.alloc((p, r), 'float32')
