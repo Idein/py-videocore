@@ -631,12 +631,12 @@ if __name__ == '__main__':
         def Gflops(sec):
             return (2*p*q*r + 3*p*r)/sec * 1e-9
 
-        print '==== sgemm example ({p}x{q} times {q}x{r}) ===='.format(
-                p=p, q=q, r=r)
-        print 'threads: {}'.format(1)
-        print 'numpy: {:.4f} sec, {:.4f} Gflops'.format(
-                elapsed_ref, Gflops(elapsed_ref))
-        print 'GPU: {:.4f} sec, {:.4f} Gflops'.format(
-                elapsed_gpu, Gflops(elapsed_gpu))
-        print 'maximum absolute error: {:.4e}'.format(
-                float(np.max(np.abs(R - C))))
+        print('==== sgemm example ({p}x{q} times {q}x{r}) ===='.format(
+                p=p, q=q, r=r))
+        print('threads: {}'.format(1))
+        print('numpy: {:.4f} sec, {:.4f} Gflops'.format(
+                elapsed_ref, Gflops(elapsed_ref)))
+        print('GPU: {:.4f} sec, {:.4f} Gflops'.format(
+                elapsed_gpu, Gflops(elapsed_gpu)))
+        print('maximum absolute error: {:.4e}'.format(
+                float(np.max(np.abs(R - C)))))

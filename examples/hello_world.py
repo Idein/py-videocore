@@ -43,12 +43,12 @@ with Driver() as drv:
             uniforms=[inp.address, out.address]
             )
 
-    print ' a '.center(80, '=')
+    print(' a '.center(80, '='))
     print(a)
-    print ' b '.center(80, '=')
+    print(' b '.center(80, '='))
     print(b)
-    print ' a+b '.center(80, '=')
+    print(' a+b '.center(80, '='))
     print(out)
-    print ' error '.center(80, '=')
+    print(' error '.center(80, '='))
     print(np.abs(a+b-out))
 
