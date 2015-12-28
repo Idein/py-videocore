@@ -10,7 +10,7 @@ def hello_world(asm):
     start_dma_load(uniform)
     wait_dma_load()
 
-    # Setup VPM read/write operaitons
+    # Setup VPM read/write operations
     setup_vpm_read(nrows=2)
     setup_vpm_write()
 
