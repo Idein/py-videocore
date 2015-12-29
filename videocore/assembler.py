@@ -14,6 +14,7 @@ from ctypes import Structure, c_ulong, string_at, byref, sizeof
 from struct import pack, unpack
 import inspect
 import ast
+import numbers
 
 import numpy
 
@@ -660,7 +661,7 @@ class LoadEmitter(Emitter):
     def _encode_imm(self, val):
         if isinstance(val, float):
             return unpack('L', pack('f', val))[0], 0
-        elif isinstance(val, (int, long)):
+        elif isinstance(val, numbers.Number):
             fmt = 'l' if val < 0 else 'L'
             return unpack('L', pack(fmt, val))[0], 0
         elif isinstance(val, (list, tuple, numpy.ndarray)):
