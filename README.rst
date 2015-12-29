@@ -36,7 +36,7 @@ Requirements
 ------------
 
 -  Raspberry Pi or Pi 2
--  Python 2.7
+-  Python 2 (>= 2.6) or Python 3
 -  NumPy
 -  nose (if you want to run tests)
 
