@@ -86,7 +86,7 @@ class MailBox(object):
         # Since the mailbox property interface overwrites the request tag buffer for returning
         # values to the host, size of the buffer must have enough space for both request
         # arguments and returned values. It must also be 32-bit aligned.
-        tag_size = (max(calcsize(req_fmt), calcsize(res_fmt)) + 3) / 4 * 4
+        tag_size = (max(calcsize(req_fmt), calcsize(res_fmt)) + 3) // 4 * 4
 
         buf = array('B', [0]*IOCTL_BUFSIZE)
         pack_into('=5L' + req_fmt + 'L', buf, 0,
