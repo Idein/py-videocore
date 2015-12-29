@@ -895,7 +895,7 @@ class Assembler(object):
         'Convert list of _instructions to executable bytes.'
 
         self._backpatch()
-        return ''.join(insn.to_bytes() for insn in self._instructions)
+        return b''.join(insn.to_bytes() for insn in self._instructions)
 
 #=================================== Alias ====================================
 
