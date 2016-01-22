@@ -97,6 +97,12 @@ In japanese.
 - `Raspberry PiのGPUで行列乗算(その1) <http://qiita.com/9_ties/items/15ab7fa198991a61a3a9>`__
 - `Raspberry PiのGPUで行列乗算(その2) <http://qiita.com/9_ties/items/e0fdd165c1c7df6bb8ee>`__
 
+Records
+-------
+
+- Achieved 8GFlops with sgemm.
+.. image:: https://pbs.twimg.com/media/CWYjkH7U4AAh9VE.jpg
+
 License
 -------
 
