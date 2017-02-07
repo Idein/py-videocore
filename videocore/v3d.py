@@ -291,7 +291,7 @@ class V3DRegisters(object):
         if v < 0 or v >= (1 << w):
             raise Exception('{} is not fit for {}-bit(s) register {}'.format(v, w, name))
         mask = ~(((1 << w) - 1) << frm)
-        self.write(offs, (v << frm) | (t & mask))
+        self.write_word(offs, (v << frm) | (t & mask))
 
     def _mmap_v3d_region(self):
         fd = os.open('/dev/mem', os.O_RDWR|os.O_SYNC)
