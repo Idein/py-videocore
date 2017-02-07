@@ -266,10 +266,10 @@ class V3DRegisters(object):
         self.base.close()
 
     def read_word(self, offs):
-        return struct.unpack('I4', self.base[offs:offs+4])[0]
+        return struct.unpack('I', self.base[offs:offs+4])[0]
 
     def write_word(self, offs, v):
-        self.base[offs:offs+4] = struct.pack('I4', v)
+        self.base[offs:offs+4] = struct.pack('I', v)
 
     def read(self, name):
         if name not in V3D_REGISTER_TABLE:
