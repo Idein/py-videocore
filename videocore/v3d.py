@@ -6,6 +6,7 @@ This code is based on https://github.com/Terminus-IMRC/libvc4v3d
 import os
 import ctypes
 import mmap
+import struct
 
 V3D_OFFSET_FROM_PERI = 0x00c00000
 V3D_LENGTH = 0x00f20 - 0x00000 + 32 / 8
@@ -17,6 +18,12 @@ class V3DRegisters(object):
 
     def close(self):
         self.base.close()
+
+    def read(self, offs):
+        return struct.unpack('I4', self.base[offs:offs+4])[0]
+
+    def write(self, offs, v):
+        self.base[offs:offs+4] = struct.pack('I4', v)
 
     def _mmap_v3d_region(self):
         fd = os.open('/dev/mem', os.O_RDWR|os.O_SYNC)
