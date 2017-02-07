@@ -13,10 +13,10 @@ V3D_LENGTH = 0x00f20 - 0x00000 + 32 / 8
 
 class V3DRegisters(object):
     def __init__(self):
-        self.v3d_base = self._mmap_v3d_region()
+        self.base = self._mmap_v3d_region()
 
     def close():
-        self.v3d_base.close()
+        self.base.close()
 
     def _mmap_v3d_region(self):
         fd = os.open('/dev/mem', os.O_RDWR|os.O_SYNC)
