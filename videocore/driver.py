@@ -7,6 +7,7 @@ import mmap
 import numpy as np
 
 from videocore.mailbox import MailBox
+from videocore.v3d import V3DRegsiters
 from videocore.assembler import assemble
 
 DEFAULT_MAX_THREADS = 1024
@@ -86,6 +87,8 @@ class Driver(object):
         self.mailbox = MailBox()
         self.mailbox.enable_qpu(1)
         self.memory  = None
+        self.v3d = V3DRegsiters()
+
         try:
             self.data_area_size = data_area_size
             self.code_area_size = code_area_size
