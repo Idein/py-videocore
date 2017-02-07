@@ -50,6 +50,7 @@ class Memory(object):
             fd = os.open('/dev/mem', os.O_RDWR|os.O_SYNC)
             self.base = mmap.mmap(fd, size, mmap.MAP_SHARED, mmap.PROT_READ|mmap.PROT_WRITE,
                     offset = self.baseaddr)
+            os.close(fd)
         except:
             if self.base:
                 self.base.close()
