@@ -9,7 +9,7 @@ import mmap
 import struct
 
 V3D_OFFSET_FROM_PERI = 0x00c00000
-V3D_LENGTH = 0x00f20 - 0x00000 + 32 / 8
+V3D_LENGTH = 0x00f20 - 0x00000 + 32 // 8
 V3D_REGISTER_TABLE = {
   'TVER': (0x00000, 24, 31, 'r'),
   'IDSTR_V': (0x00000, 0, 7, 'r'),
