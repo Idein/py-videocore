@@ -15,7 +15,7 @@ class V3DRegisters(object):
     def __init__(self):
         self.base = self._mmap_v3d_region()
 
-    def close():
+    def close(self):
         self.base.close()
 
     def _mmap_v3d_region(self):
