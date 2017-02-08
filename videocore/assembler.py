@@ -253,7 +253,7 @@ IO_REGISTERS = {
         ('element_number'    , 38 , _REG_AR),
         ('qpu_number'        , 38 , _REG_BR),
         ('null'              , 39 , _REG_AR|_REG_BR|_REG_AW|_REG_BW),
-        ('uniforms_address'  , 40 , _REG_AW|_REG_BW),
+        ('uniforms_address'  , 40 , _REG_AW),
         ('x_pixel_coord'     , 41 , _REG_AR),
         ('y_pixel_coord'     , 41 , _REG_BR),
         ('quad_x'            , 41 , _REG_AW),
