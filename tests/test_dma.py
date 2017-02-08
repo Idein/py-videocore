@@ -45,7 +45,7 @@ def horizontal_32bit_load_calc_and_store(asm):
         iadd(ra0, ra0, rb0)
     wait_dma_load()
 
-    setup_vpm_read(mode='32bit horizontal', Y=0, X=0, nrows=16)
+    setup_vpm_read(mode='32bit horizontal', Y=0, X=0, nrows=1)
     setup_vpm_write(mode='32bit horizontal', Y=0, X=0)
     mov(r0, vpm)
     iadd(vpm, r0, 1)
