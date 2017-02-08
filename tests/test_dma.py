@@ -36,6 +36,62 @@ def test_horizontal_32bit_load():
         assert np.all(X == Y)
 
 @qpu
+def horizontal_32bit_load_calc_and_store(asm):
+    mov(ra0, uniform)
+    ldi(rb0, 4*16*16)
+    for i in range(4):
+        setup_dma_load(Y=16*i, mode='32bit horizontal', nrows=16)
+        start_dma_load(ra0)
+        iadd(ra0, ra0, rb0)
+    wait_dma_load()
+
+    setup_vpm_read(mode='32bit horizontal', Y=0, X=0, nrows=16)
+    setup_vpm_write(mode='32bit horizontal', Y=0, X=0)
+    mov(r0, vpm)
+    iadd(vpm, r0, 1)
+
+    setup_dma_store(mode='32bit horizontal', nrows=64)
+    start_dma_store(uniform)
+
+    # TODO: remove this nop
+    for i in range(16*1024):
+        nop()
+
+    wait_dma_store()
+    exit()
+
+def test_horizontal_32bit_load_calc_and_store_another_buffer():
+    with Driver() as drv:
+        X = drv.alloc((64, 16), dtype='uint32')
+        X[:] = np.arange(64*16).reshape(64, 16).astype('uint32')
+        Y = drv.alloc((64, 16), dtype='uint32')
+
+        drv.execute(
+                n_threads=1,
+                program=drv.program(horizontal_32bit_load_calc_and_store),
+                uniforms=[X.address, Y.address]
+                )
+
+        X[0] = X[0] + 1
+        assert np.all(X == Y)
+
+def test_horizontal_32bit_load_calc_and_store_self_buffer():
+    with Driver() as drv:
+        X = drv.alloc((64, 16), dtype='uint32')
+        X[:] = np.arange(64*16).reshape(64, 16).astype('uint32')
+        Y = drv.alloc((64, 16), dtype='uint32')
+
+        drv.execute(
+                n_threads=1,
+                program=drv.program(horizontal_32bit_load_calc_and_store),
+                uniforms=[X.address, X.address]
+                )
+
+        Y[:] = np.arange(64*16).reshape(64, 16).astype('uint32')
+        Y[0] = Y[0] + 1
+        assert np.all(X == Y)
+
+@qpu
 def vertical_32bit_load(asm):
     mov(ra0, uniform)
     ldi(rb0, 4*16*4)
