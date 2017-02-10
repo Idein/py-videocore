@@ -12,7 +12,7 @@ def mask(idx):
     return values
 
 @qpu
-def sgemm_gpu_code(asm, n_threads):
+def sgemm_gpu_code(asm):
     B_CUR_IDX = 0
     K_IDX = 1
     I_IDX = 2
@@ -370,28 +370,19 @@ def sgemm_gpu_code(asm, n_threads):
     start_dma_load(r5)
     mov(r3, r5)
 
-    # Issue load of block 1
-    setup_dma_load(mode='32bit horizontal', Y=16, X=0, nrows=16, mpitch=0)
-    ldi(broadcast, 4*16)
-    iadd(vpm_ld_addr, r3, r5)
-
-    # Issue load of block 2
-    setup_dma_load(mode='32bit horizontal', Y=32, X=0, nrows=16, mpitch=0)
-    ldi(r0, 4*16*2)
-    iadd(vpm_ld_addr, r3, r0)
-
-    # Issue load of block 3
-    setup_dma_load(mode='32bit horizontal', Y=48, X=0, nrows=16, mpitch=0)
-    ldi(r0, 4*16*3)
-    iadd(vpm_ld_addr, r3, r0)
-
     # Load alpha and beta.
     rotate(r0, r2, -COEF_ADDR_IDX)
     mov(uniforms_address, r0)
 
     # Setup VPM access for block 0
+    wait_dma_load() # Wait for load of block 0
     setup_vpm_read(mode='32bit vertical', Y=0, X=0, nrows=16)
     setup_vpm_write(mode='32bit vertical', Y=0, X=0)
+
+    # Issue load of block 1
+    setup_dma_load(mode='32bit horizontal', Y=16, X=0, nrows=16, mpitch=0)
+    ldi(broadcast, 4*16)
+    iadd(vpm_ld_addr, r3, r5)
 
     mov(r1, uniform)        # r1=alpha
     mov(broadcast, uniform) # r5=beta
@@ -436,8 +427,14 @@ def sgemm_gpu_code(asm, n_threads):
     start_dma_store(r3)
 
     # Setup VPM access for block 1
+    wait_dma_load() # Wait for load of block 1
     setup_vpm_read(mode='32bit vertical', Y=16, X=0, nrows=16)
     setup_vpm_write(mode='32bit vertical', Y=16, X=0)
+
+    # Issue load of block 2
+    setup_dma_load(mode='32bit horizontal', Y=32, X=0, nrows=16, mpitch=0)
+    ldi(r0, 4*16*2)
+    iadd(vpm_ld_addr, r3, r0)
 
     fmul(ra8, ra8, r1)
     fmul(r0, vpm, r5)
@@ -475,15 +472,20 @@ def sgemm_gpu_code(asm, n_threads):
     mov(rb15, 0.0)
 
     # Issue store of block 1
+    wait_dma_store() # Wait for store of block 0
     setup_dma_store(mode='32bit horizontal', Y=16, nrows=16)
     ldi(r0, 4*16)
     iadd(vpm_st_addr, r3, r0)
 
-    wait_dma_load() # block 2 and 3
-
     # setup VPM access for block 2.
+    wait_dma_load() # Wait for load of block 2
     setup_vpm_read(mode='32bit vertical', X=0, Y=32, nrows=16)
     setup_vpm_write(mode='32bit vertical', X=0, Y=32)
+
+    # Issue load of block 3
+    setup_dma_load(mode='32bit horizontal', Y=48, X=0, nrows=16, mpitch=0)
+    ldi(r0, 4*16*3)
+    iadd(vpm_ld_addr, r3, r0)
 
     fmul(ra16, ra16, r1)
     fmul(r0, vpm, r5)
@@ -521,11 +523,13 @@ def sgemm_gpu_code(asm, n_threads):
     mov(rb23, 0.0)
 
     # Issue store of block 2. 
+    wait_dma_store() # Wait for store of block 1
     setup_dma_store(mode='32bit horizontal', Y=32, nrows=16)
     ldi(r0, 4*16*2)
     iadd(vpm_st_addr, r3, r0)
 
     # setup VPM access for block 3
+    wait_dma_load() # Wait for load of block 3
     setup_vpm_read(mode='32bit vertical', X=0, Y=48, nrows=16)
     setup_vpm_write(mode='32bit vertical', X=0, Y=48)
 
@@ -565,11 +569,12 @@ def sgemm_gpu_code(asm, n_threads):
     mov(rb31, 0.0)
 
     # Issue store of block 3
+    wait_dma_store() # Wait for store of block 2
     setup_dma_store(mode='32bit horizontal', Y=48, nrows=16)
     ldi(r0, 4*16*3)
     iadd(vpm_st_addr, r3, r0)
 
-    wait_dma_store()
+    wait_dma_store() # Wait for store of block 3
     mutex_release()
 
     rotate(broadcast, r2, -J_IDX)
@@ -599,8 +604,12 @@ def sgemm_gpu_code(asm, n_threads):
     nop(); nop(); nop()
 
     # Only thread 0 enters here.
-    for i in range(n_threads):
-        sema_down(COMPLETED)    # Wait completion of all threads.
+    iadd(r0, uniform, -1)
+    L.sem_down
+    jzc(L.sem_down)
+    sema_down(COMPLETED)    # Wait completion of all threads.
+    nop()
+    iadd(r0, r0, -1)
 
     interrupt()
 
@@ -641,7 +650,7 @@ if __name__ == '__main__':
         elapsed_ref = time.time() - start
 
         # Allocate uniforms.
-        uniforms = drv.alloc((n_threads, 13), 'uint32')
+        uniforms = drv.alloc((n_threads, 14), 'uint32')
         uniforms[:, 0] = uniforms.addresses()[:, 0]
 
         th = 0
@@ -662,6 +671,7 @@ if __name__ == '__main__':
         uniforms[:, 10] = struct.unpack('L', struct.pack('f', alpha))[0]
         uniforms[:, 11] = struct.unpack('L', struct.pack('f', beta))[0]
         uniforms[:, 12] = np.arange(n_threads)
+        uniforms[:, 13] = n_threads
 
         # Allocate GPU program.
         code = drv.program(sgemm_gpu_code, n_threads)
