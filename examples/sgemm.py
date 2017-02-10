@@ -604,8 +604,12 @@ def sgemm_gpu_code(asm, n_threads):
     nop(); nop(); nop()
 
     # Only thread 0 enters here.
-    for i in range(n_threads):
-        sema_down(COMPLETED)    # Wait completion of all threads.
+    iadd(r0, uniform, -1)
+    L.sem_down
+    jzc(L.sem_down)
+    sema_down(COMPLETED)    # Wait completion of all threads.
+    nop()
+    iadd(r0, r0, -1)
 
     interrupt()
 
@@ -646,7 +650,7 @@ if __name__ == '__main__':
         elapsed_ref = time.time() - start
 
         # Allocate uniforms.
-        uniforms = drv.alloc((n_threads, 13), 'uint32')
+        uniforms = drv.alloc((n_threads, 14), 'uint32')
         uniforms[:, 0] = uniforms.addresses()[:, 0]
 
         th = 0
@@ -667,6 +671,7 @@ if __name__ == '__main__':
         uniforms[:, 10] = struct.unpack('L', struct.pack('f', alpha))[0]
         uniforms[:, 11] = struct.unpack('L', struct.pack('f', beta))[0]
         uniforms[:, 12] = np.arange(n_threads)
+        uniforms[:, 13] = n_threads
 
         # Allocate GPU program.
         code = drv.program(sgemm_gpu_code, n_threads)
