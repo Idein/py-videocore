@@ -3,7 +3,7 @@ import numpy as np
 import struct
 import time
 
-from videocore.assembler import qpu, assemble
+from videocore.assembler import qpu, assemble, print_qbin
 from videocore.driver import Driver
 
 def mask(idx):
@@ -573,7 +573,7 @@ def sgemm_gpu_code(asm):
 
     exit()
 
-if __name__ == '__main__':
+def main():
     with Driver() as drv:
         p = 96
         q = 363
@@ -646,3 +646,7 @@ if __name__ == '__main__':
                 float(np.min(np.abs((R - C) / R)))))
         print('maximum relative error: {:.4e}'.format(
                 float(np.max(np.abs((R - C) / R)))))
+
+if __name__ == '__main__':
+    main()
+    #print_qbin(sgemm_gpu_code)
