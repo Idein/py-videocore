@@ -12,7 +12,7 @@ def mask(idx):
     return values
 
 @qpu
-def sgemm_gpu_code(asm, n_threads):
+def sgemm_gpu_code(asm):
     B_CUR_IDX = 0
     K_IDX = 1
     I_IDX = 2
