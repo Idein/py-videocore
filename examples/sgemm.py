@@ -645,15 +645,15 @@ if __name__ == '__main__':
         uniforms[:, 0] = uniforms.addresses()[:, 0]
 
         th = 0
-        h = p/(16*p_div)
-        w = r/(64*r_div)
+        h = (p+16*p_div-1)//(16*p_div)
+        w = (r+64*r_div-1)//(64*r_div)
         for i in range(p_div):
             for j in range(r_div):
-                uniforms[th, 1] = h if i != p_div-1 else p/16-i*h
+                uniforms[th, 1] = h if i != p_div-1 else (p-i*h*16)//16
                 uniforms[th, 2] = q
-                uniforms[th, 3] = w if j != r_div-1 else r/64-j*w
-                uniforms[th, 4] = A.addresses()[i*16*h, 0]
-                uniforms[th, 5] = B.addresses()[0, j*64*w]
+                uniforms[th, 3] = w if j != r_div-1 else (r-j*w*64)//64
+                uniforms[th, 4] = A.addresses()[i*16*h, 0     ]
+                uniforms[th, 5] = B.addresses()[0,      j*64*w]
                 uniforms[th, 6] = C.addresses()[i*16*h, j*64*w]
                 th += 1
         uniforms[:, 7] = A.strides[0]
