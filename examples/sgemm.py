@@ -12,7 +12,7 @@ def mask(idx):
     return values
 
 @qpu
-def sgemm_gpu_code(asm, n_threads):
+def sgemm_gpu_code(asm):
     B_CUR_IDX = 0
     K_IDX = 1
     I_IDX = 2
@@ -599,8 +599,12 @@ def sgemm_gpu_code(asm, n_threads):
     nop(); nop(); nop()
 
     # Only thread 0 enters here.
-    for i in range(n_threads):
-        sema_down(COMPLETED)    # Wait completion of all threads.
+    mov(r0, uniform)     # thread number
+    L.thread_join
+    sema_down(COMPLETED) # Wait completion of all threads.
+    isub(r0, r0, 1, set_flags=True)
+    jzc(L.thread_join)
+    nop(); nop(); nop()
 
     interrupt()
 
@@ -641,7 +645,7 @@ if __name__ == '__main__':
         elapsed_ref = time.time() - start
 
         # Allocate uniforms.
-        uniforms = drv.alloc((n_threads, 13), 'uint32')
+        uniforms = drv.alloc((n_threads, 14), 'uint32')
         uniforms[:, 0] = uniforms.addresses()[:, 0]
 
         th = 0
@@ -662,9 +666,10 @@ if __name__ == '__main__':
         uniforms[:, 10] = struct.unpack('L', struct.pack('f', alpha))[0]
         uniforms[:, 11] = struct.unpack('L', struct.pack('f', beta))[0]
         uniforms[:, 12] = np.arange(n_threads)
+        uniforms[:, 13] = n_threads
 
         # Allocate GPU program.
-        code = drv.program(sgemm_gpu_code, n_threads)
+        code = drv.program(sgemm_gpu_code)
 
         # GPU
         start = time.time()
