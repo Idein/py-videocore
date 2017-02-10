@@ -1,4 +1,5 @@
 # GPU accelerated single precision matrix multiplication (multi thread)
+from __future__ import print_function
 import numpy as np
 import struct
 import time
@@ -617,7 +618,7 @@ def sgemm_gpu_code(asm):
 
     exit(interrupt=False)
 
-if __name__ == '__main__':
+def main():
     with Driver() as drv:
         p = 96
         q = 363
@@ -674,7 +675,7 @@ if __name__ == '__main__':
         uniforms[:, 13] = n_threads
 
         # Allocate GPU program.
-        code = drv.program(sgemm_gpu_code, n_threads)
+        code = drv.program(sgemm_gpu_code)
 
         # GPU
         start = time.time()
@@ -703,3 +704,16 @@ if __name__ == '__main__':
                 float(np.min(np.abs((R - C) / R)))))
         print('maximum relative error: {:.4e}'.format(
                 float(np.max(np.abs((R - C) / R)))))
+
+def emit_qbin(code):
+    with Driver() as drv:
+        prog = drv.program(code)
+        assert(len(prog.code) % 8 == 0)
+        for i in range(len(prog.code) / 8):
+            for j in range(7, -1, -1):
+                print("%08d" % int(bin(ord(prog.code[i * 8 + j]))[2:]), end = ' ' if j != 0 else '')
+            print()
+
+if __name__ == '__main__':
+    main()
+    #emit_qbin(sgemm_gpu_code)
