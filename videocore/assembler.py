@@ -9,6 +9,8 @@ The QPU instruction set is described in the section 3 of the following document
 <https://www.broadcom.com/docs/support/videocore/VideoCoreIV-AG100-R.pdf>`__
 """
 
+from __future__ import print_function
+import sys
 from functools import partial
 from ctypes import Structure, c_ulong, string_at, byref, sizeof
 from struct import pack, unpack
@@ -1160,3 +1162,14 @@ def assemble(f, *args, **kwargs):
     asm = Assembler()
     f(asm, *args, **kwargs)
     return asm._get_code()
+
+def print_qbin(program, file = sys.stdout, *args, **kwargs):
+    'Print QPU program as .qbin.'
+    if hasattr(program, '__call__'):
+        program = assemble(program, *args, **kwargs)
+    code = memoryview(program).tobytes()
+    assert(len(code) % 8 == 0)
+    for i in range(len(code) / 8):
+        for j in range(7, -1, -1):
+            print("%08d" % int(bin(ord(code[i * 8 + j]))[2:]), end = ' ' if j != 0 else '', file = file)
+        print(file = file)
