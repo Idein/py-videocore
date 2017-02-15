@@ -503,10 +503,10 @@ class Emitter(object):
             if not (opd.spec & (_REG_AR | _REG_BR)):
                 raise AssembleError('{} can not be a read operand'.format(opd))
 
-            if raddr_a is None:
+            if raddr_a is None or raddr_a == opd.addr:
                 raddr_a = opd.addr
                 muxes[i] = _INPUT_MUXES['A']
-            elif small_imm is None and raddr_b is None:
+            elif (small_imm is None and raddr_b is None) or raddr_b == opd.addr:
                 raddr_b = opd.addr
                 muxes[i] = _INPUT_MUXES['B']
             else:
