@@ -1096,6 +1096,11 @@ REGISTER_ALIASES = '\n'.join(
     for reg in Assembler._REGISTERS
     )
 
+REGISTER_ARRAY = 'ra = [{}]\nrb = [{}]'.format(
+        ','.join('ra'+str(i) for i in range(32)),
+        ','.join('rb'+str(i) for i in range(32))
+        )
+
 INSTRUCTION_ALIASES = '\n'.join(
     '{0} = asm.{0}'.format(f)
     for f in dir(Assembler)
@@ -1105,6 +1110,7 @@ INSTRUCTION_ALIASES = '\n'.join(
 SETUP_ASM_ALIASES = ast.parse("""
 # Alias of registers.
 {register_aliases}
+{register_array}
 
 # Alias of instructions.
 {instruction_aliases}
@@ -1113,6 +1119,7 @@ SETUP_ASM_ALIASES = ast.parse("""
 L = asm.L
 """.format(
         register_aliases=REGISTER_ALIASES,
+        register_array=REGISTER_ARRAY,
         instruction_aliases=INSTRUCTION_ALIASES
         ))
 
