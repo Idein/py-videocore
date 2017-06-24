@@ -10,7 +10,7 @@ pipelined and 4 way true) SIMD processor. Read the following guide
 thoroughly to study its architecture.
 
 -  `VideoCore(R) IV 3D Architecture Reference Guide
-   (PDF) <https://www.broadcom.com/docs/support/videocore/VideoCoreIV-AG100-R.pdf>`__
+   (PDF) <https://docs.broadcom.com/docs/12358545>`__
    [#appendix]_
 
 As far as I know, modern GPGPU programming environments such as OpenCL
@@ -67,7 +67,7 @@ Be Careful
 -  You need to run programs as a super user so that this library can access
    ``/dev/mem``.
 -  Accessing wrong location of ``/dev/mem``, due to a bug of this library or
-   your program, may make your system unstable or could break your machine. 
+   your program, may make your system unstable or could break your machine.
 
 Getting Started
 ---------------
