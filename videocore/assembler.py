@@ -347,7 +347,7 @@ class Insn(Structure):
         return '{class_name}({fields})'.format(
             class_name=self.__class__.__name__,
             fields =', '.join(
-                    f + '=' + hex(getattr(self, f))
+                    f + '=' + "0x%x" % getattr(self, f)
                     for f, _, _ in reversed(self._fields_) if f != 'dontcare'
                 ))
 
