@@ -59,17 +59,17 @@ def test_bytes_conversion():
 
 def test_insn_repr():
     assert repr(SAMPLE_ALU_INSN) == (
-            'AluInsn(sig=0x0L, unpack=0x1L, pm=0x1L, pack=0x2L, '
-            'cond_add=0x3L, cond_mul=0x4L, sf=0x1L, ws=0x1L, waddr_add=0x35L, '
-            'waddr_mul=0xcL, op_mul=0x4L, op_add=0x2L, raddr_a=0x21L, '
-            'raddr_b=0x35L, add_a=0x4L, add_b=0x7L, mul_a=0x6L, mul_b=0x2L)'
+            'AluInsn(sig=0x0, unpack=0x1, pm=0x1, pack=0x2, '
+            'cond_add=0x3, cond_mul=0x4, sf=0x1, ws=0x1, waddr_add=0x35, '
+            'waddr_mul=0xc, op_mul=0x4, op_add=0x2, raddr_a=0x21, '
+            'raddr_b=0x35, add_a=0x4, add_b=0x7, mul_a=0x6, mul_b=0x2)'
             )
 
 def test_ignore_dontcare():
     assert repr(SAMPLE_BRANCH_INSN) == (
-            'BranchInsn(sig=0xfL, cond_br=0xdL, rel=0x1L, reg=0x0L, '
-            'raddr_a=0x1bL, ws=0x1L, waddr_add=0x35L, waddr_mul=0xcL, '
-            'immediate=0x12345678L)'
+            'BranchInsn(sig=0xf, cond_br=0xd, rel=0x1, reg=0x0, '
+            'raddr_a=0x1b, ws=0x1, waddr_add=0x35, waddr_mul=0xc, '
+            'immediate=0x12345678)'
             )
     insn1 = deepcopy(SAMPLE_BRANCH_INSN)
     insn2 = deepcopy(SAMPLE_BRANCH_INSN)
