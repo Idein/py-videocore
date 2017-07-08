@@ -635,9 +635,9 @@ class MulEmitter(Emitter):
         sig_bits = _SIGNAL[sig]
 
         if rotate:
-            if not (0<=muxes[2] and muxes[2]<4 and 0<=muxes[3] and muxes[3]<4):
+            if muxes[2] == 5 or muxes[2] == 7 or muxes[3] == 5 or muxes[3] == 7:
                 raise AssembleError('Rotate operation is only available when'
-                                    ' inputs are taken from r0-r3')
+                                    ' inputs are taken from r0-r3, r4 and ra')
 
             if rotate == REGISTERS['r5']:
                 raddr_b = 48

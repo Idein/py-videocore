@@ -178,7 +178,7 @@ def test_pack_unpack_conflict():
 
 @qpu
 def invalid_rotate_insn(asm):
-    fmul(r0, ra0, r2, rotate=2)
+    fmul(r0, ra0, r5, rotate=2)
 
 @raises(AssembleError)
 def test_invalid_rotate_insn():
