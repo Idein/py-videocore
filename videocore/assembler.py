@@ -1153,16 +1153,27 @@ def qpu(f):
     if 'asm' not in args:
         raise AssembleError('Argument named \'asm\' is necessary')
 
-    tree = ast.parse(inspect.getsource(f))
+    def decorate(f):
+        def decorated(asm, *args, **kwargs):
+            g = f.__globals__
+            exec('\n'.join(
+                'g["{0}"] = asm._REGISTERS[\'{0}\']'.format(reg)
+                for reg in Assembler._REGISTERS
+            ))
+            exec('g["ra"] = [{}]\ng["rb"] = [{}]'.format(
+                ','.join('g["ra'+str(i)+'"]' for i in range(32)),
+                ','.join('g["rb'+str(i)+'"]' for i in range(32))
+            ))
+            exec('\n'.join(
+                'g["{0}"] = asm.{0}'.format(f)
+                for f in dir(Assembler)
+                if f[0] != '_'
+            ))
+            exec('g["L"] = asm.L')
+            f(asm, *args, **kwargs)
+        return decorated
 
-    fundef = tree.body[0]
-    fundef.body = SETUP_ASM_ALIASES.body + fundef.body
-    fundef.decorator_list = []
-
-    code = compile(tree, '<qpu>', 'exec')
-    scope = {}
-    exec(code, f.__globals__, scope)
-    return scope[f.__name__]
+    return decorate(f)
 
 def assemble(f, *args, **kwargs):
     'Assemble QPU program to byte string.'
