@@ -1179,11 +1179,12 @@ def print_qbin(program, file = sys.stdout, *args, **kwargs):
     'Print QPU program as .qbin.'
     if hasattr(program, '__call__'):
         program = assemble(program, *args, **kwargs)
-    code = memoryview(program).tobytes()
+        code = memoryview(program).tobytes()
+        code = map(ord, code) if type(code) is str else code
     assert(len(code) % 8 == 0)
-    for i in range(len(code) / 8):
+    for i in range(len(code) // 8):
         for j in range(7, -1, -1):
-            print("%08d" % int(bin(ord(code[i * 8 + j]))[2:]), end = ' ' if j != 0 else '', file = file)
+            print("%08d" % int(bin(code[i * 8 + j])[2:]), end = ' ' if j != 0 else '', file = file)
         print(file = file)
 
 def print_qhex(program, file = sys.stdout, *args, **kwargs):
@@ -1191,6 +1192,7 @@ def print_qhex(program, file = sys.stdout, *args, **kwargs):
     if hasattr(program, '__call__'):
         program = assemble(program, *args, **kwargs)
         code = memoryview(program).tobytes()
+        code = map(ord, code) if type(code) is str else code
     assert(len(code) % 8 == 0)
-    for c in zip(*[iter(map(ord, code))]*8):
+    for c in zip(*[iter(code)]*8):
         print("0x{3:02X}{2:02X}{1:02X}{0:02X}, 0x{7:02X}{6:02X}{5:02X}{4:02X},".format(*c))
