@@ -1091,38 +1091,6 @@ def sema_up(asm, sema_id):
 def sema_down(asm, sema_id):
     asm._emit_sema(1, sema_id)
 
-REGISTER_ALIASES = '\n'.join(
-    '{0} = asm._REGISTERS[\'{0}\']'.format(reg)
-    for reg in Assembler._REGISTERS
-    )
-
-REGISTER_ARRAY = 'ra = [{}]\nrb = [{}]'.format(
-        ','.join('ra'+str(i) for i in range(32)),
-        ','.join('rb'+str(i) for i in range(32))
-        )
-
-INSTRUCTION_ALIASES = '\n'.join(
-    '{0} = asm.{0}'.format(f)
-    for f in dir(Assembler)
-    if f[0] != '_'
-    )
-
-SETUP_ASM_ALIASES = ast.parse("""
-# Alias of registers.
-{register_aliases}
-{register_array}
-
-# Alias of instructions.
-{instruction_aliases}
-
-# Label
-L = asm.L
-""".format(
-        register_aliases=REGISTER_ALIASES,
-        register_array=REGISTER_ARRAY,
-        instruction_aliases=INSTRUCTION_ALIASES
-        ))
-
 def qpu(f):
     """Decorator for writing QPU assembly language.
 
