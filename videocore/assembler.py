@@ -1156,20 +1156,14 @@ def qpu(f):
     def decorate(f):
         def decorated(asm, *args, **kwargs):
             g = f.__globals__
-            exec('\n'.join(
-                'g["{0}"] = asm._REGISTERS[\'{0}\']'.format(reg)
-                for reg in Assembler._REGISTERS
-            ))
-            exec('g["ra"] = [{}]\ng["rb"] = [{}]'.format(
-                ','.join('g["ra'+str(i)+'"]' for i in range(32)),
-                ','.join('g["rb'+str(i)+'"]' for i in range(32))
-            ))
-            exec('\n'.join(
-                'g["{0}"] = asm.{0}'.format(f)
-                for f in dir(Assembler)
-                if f[0] != '_'
-            ))
-            exec('g["L"] = asm.L')
+            for reg in Assembler._REGISTERS:
+                g[str(reg)] = asm._REGISTERS[str(reg)]
+            g['ra'] = [g['ra{}'.format(i)] for i in range(32)]
+            g['rb'] = [g['rb{}'.format(i)] for i in range(32)]
+            for i in dir(Assembler):
+                if i[0] != '_':
+                    g[str(i)] = getattr(asm, str(i))
+            g['L'] = asm.L
             f(asm, *args, **kwargs)
         return decorated
 
