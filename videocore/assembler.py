@@ -1091,38 +1091,6 @@ def sema_up(asm, sema_id):
 def sema_down(asm, sema_id):
     asm._emit_sema(1, sema_id)
 
-REGISTER_ALIASES = '\n'.join(
-    '{0} = asm._REGISTERS[\'{0}\']'.format(reg)
-    for reg in Assembler._REGISTERS
-    )
-
-REGISTER_ARRAY = 'ra = [{}]\nrb = [{}]'.format(
-        ','.join('ra'+str(i) for i in range(32)),
-        ','.join('rb'+str(i) for i in range(32))
-        )
-
-INSTRUCTION_ALIASES = '\n'.join(
-    '{0} = asm.{0}'.format(f)
-    for f in dir(Assembler)
-    if f[0] != '_'
-    )
-
-SETUP_ASM_ALIASES = ast.parse("""
-# Alias of registers.
-{register_aliases}
-{register_array}
-
-# Alias of instructions.
-{instruction_aliases}
-
-# Label
-L = asm.L
-""".format(
-        register_aliases=REGISTER_ALIASES,
-        register_array=REGISTER_ARRAY,
-        instruction_aliases=INSTRUCTION_ALIASES
-        ))
-
 def qpu(f):
     """Decorator for writing QPU assembly language.
 
@@ -1153,16 +1121,21 @@ def qpu(f):
     if 'asm' not in args:
         raise AssembleError('Argument named \'asm\' is necessary')
 
-    tree = ast.parse(inspect.getsource(f))
+    def decorate(f):
+        def decorated(asm, *args, **kwargs):
+            g = f.__globals__
+            for reg in Assembler._REGISTERS:
+                g[str(reg)] = asm._REGISTERS[str(reg)]
+            g['ra'] = [g['ra{}'.format(i)] for i in range(32)]
+            g['rb'] = [g['rb{}'.format(i)] for i in range(32)]
+            for i in dir(Assembler):
+                if i[0] != '_':
+                    g[str(i)] = getattr(asm, str(i))
+            g['L'] = asm.L
+            f(asm, *args, **kwargs)
+        return decorated
 
-    fundef = tree.body[0]
-    fundef.body = SETUP_ASM_ALIASES.body + fundef.body
-    fundef.decorator_list = []
-
-    code = compile(tree, '<qpu>', 'exec')
-    scope = {}
-    exec(code, f.__globals__, scope)
-    return scope[f.__name__]
+    return decorate(f)
 
 def assemble(f, *args, **kwargs):
     'Assemble QPU program to byte string.'
@@ -1174,11 +1147,12 @@ def print_qbin(program, file = sys.stdout, *args, **kwargs):
     'Print QPU program as .qbin.'
     if hasattr(program, '__call__'):
         program = assemble(program, *args, **kwargs)
-    code = memoryview(program).tobytes()
+        code = memoryview(program).tobytes()
+        code = map(ord, code) if type(code) is str else code
     assert(len(code) % 8 == 0)
-    for i in range(len(code) / 8):
+    for i in range(len(code) // 8):
         for j in range(7, -1, -1):
-            print("%08d" % int(bin(ord(code[i * 8 + j]))[2:]), end = ' ' if j != 0 else '', file = file)
+            print("%08d" % int(bin(code[i * 8 + j])[2:]), end = ' ' if j != 0 else '', file = file)
         print(file = file)
 
 def print_qhex(program, file = sys.stdout, *args, **kwargs):
@@ -1186,6 +1160,7 @@ def print_qhex(program, file = sys.stdout, *args, **kwargs):
     if hasattr(program, '__call__'):
         program = assemble(program, *args, **kwargs)
         code = memoryview(program).tobytes()
+        code = map(ord, code) if type(code) is str else code
     assert(len(code) % 8 == 0)
-    for c in zip(*[iter(map(ord, code))]*8):
+    for c in zip(*[iter(code)]*8):
         print("0x{3:02X}{2:02X}{1:02X}{0:02X}, 0x{7:02X}{6:02X}{5:02X}{4:02X},".format(*c))
