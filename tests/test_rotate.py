@@ -137,3 +137,26 @@ def test_rotate_ra():
     for i in range(0, 16):
         Y_ref = list_half_rotate(X, i)
         assert np.alltrue(Y[15+i] == Y_ref)
+
+@qpu
+def rotate_as_simm(asm):
+    mov(r0, vpm)
+
+    mov(broadcast, 0)
+    nop()
+    mov(r1, -16).mov(r2, r0, rotate=r5)
+    mov(vpm, r1)
+    mov(vpm, r2)
+    for i in range(1, 16):
+        mov(r1, i-16).mov(r2, r0, rotate=i)
+        mov(vpm, r1)
+        mov(vpm, r2)
+
+def test_rotate_as_simm():
+    X = np.array([random.getrandbits(32) for i in range(16)]).astype(np.int32)
+    Y = run_code(rotate_as_simm, X, 16*2).astype(np.int32)
+    assert np.alltrue(Y[0] == -16)
+    assert np.alltrue(Y[1] == X)
+    for i in range(1, 16):
+        assert np.alltrue(Y[i * 2 + 0] == i-16)
+        assert np.alltrue(Y[i * 2 + 1] == list_full_rotate(X, i))
