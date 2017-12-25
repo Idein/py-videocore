@@ -185,6 +185,14 @@ def test_invalid_rotate_insn():
     assemble(invalid_rotate_insn)
 
 @qpu
+def invalid_rotate_as_simm(asm):
+    iadd(r0, -2).mov(r1, r1, rotate=-3)
+
+@raises(AssembleError)
+def test_invalid_rotate_as_simm():
+    assemble(invalid_rotate_as_simm)
+
+@qpu
 def unsupported_immediate(asm):
     ldi(r0, "Hello")
 

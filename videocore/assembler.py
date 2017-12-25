@@ -639,6 +639,26 @@ class MulEmitter(Emitter):
                 raise AssembleError('Rotate operation is only available when'
                                     ' inputs are taken from r0-r4 or ra')
 
+            if use_imm:
+
+                # 'r5 rotate' represents -1.
+                # 'n-upward rotate' represents n-16.
+                # So these combinations can be used (1 <= n <= 15):
+                # +-----------+--------+
+                # | small imm | rotate |
+                # +-----------+--------+
+                # |    -16    |   r5   |
+                # |     -n    |   -n   |
+                # +-----------+--------+
+                # c.f. https://vc4-notes.tumblr.com/post/153467713064/
+
+                if rotate == REGISTERS['r5']:
+                    if raddr_b != _SMALL_IMM['-16']:
+                        raise AssembleError(
+                                'Conflict immediate value and r5 rotate')
+                elif raddr_b != _SMALL_IMM[str(rotate%16-16)]:
+                    raise AssembleError('Conflict immediate value and n rotate')
+
             if rotate == REGISTERS['r5']:
                 raddr_b = 48
             else:
