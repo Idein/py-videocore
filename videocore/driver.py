@@ -46,10 +46,10 @@ class Memory(object):
             if self.handle == 0:
                 raise DriverError('Failed to allocate QPU device memory')
 
-            self.baseaddr = self._to_phys(self.mailbox.lock_memory(self.handle))
-            fd = os.open('/dev/mem', os.O_RDWR|os.O_SYNC)
+            fd = os.open('/dev/vc4mem', os.O_RDWR|os.O_SYNC)
+            self.baseaddr = self.mailbox.lock_memory(self.handle)
             self.base = mmap.mmap(fd, size, mmap.MAP_SHARED, mmap.PROT_READ|mmap.PROT_WRITE,
-                    offset = self.baseaddr)
+                    offset = self._to_phys(self.baseaddr))
             os.close(fd)
         except:
             if self.base:
@@ -125,7 +125,7 @@ class Driver(object):
     def __exit__(self, exc_type, value, traceback):
         self.close()
         return exc_type is None
-    
+
     def copy(self, arr):
         new_arr = Array(
                 shape   = arr.shape,
