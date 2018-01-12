@@ -37,9 +37,12 @@ class Array(np.ndarray):
             np.uint32
             ).reshape(self.shape)
 
+    # Mark the content of CPU cache as invalid i.e. the content must be fetched
+    # from memory when user read from the location.
     def invalidate(self):
         self.vcsm.invalidate(self.usraddr, self.nbytes)
 
+    # Write the content of CPU cache to memory.
     def clean(self):
         self.vcsm.clean(self.usraddr, self.nbytes)
 
