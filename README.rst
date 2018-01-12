@@ -38,7 +38,7 @@ Requirements
 -  Raspberry Pi or Pi 2
 -  Python 2 (>= 2.6) or Python 3
 -  NumPy
--  [rpi-vcsm >= 2.0.0](https://github.com/Idein/rpi-vcsm)
+-  `rpi-vcsm <https://github.com/Idein/rpi-vcsm>`__ >= 2.0.0
 -  nose (if you want to run tests)
 
 Installation
