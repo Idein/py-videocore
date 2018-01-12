@@ -20,9 +20,13 @@ class DriverError(Exception):
 
 class Array(np.ndarray):
     def __new__(cls, *args, **kwargs):
-        address = kwargs.pop('address')
+        vcsm = kwargs.pop('vcsm')
+        address = kwargs.pop('address')  # bus address
+        usraddr = kwargs.pop('usraddr')  # user virtual address
         obj = super(Array, cls).__new__(cls, *args, **kwargs)
+        obj.vcsm = vcsm
         obj.address = address
+        obj.usraddr = usraddr
         return obj
 
     def addresses(self):
@@ -32,6 +36,12 @@ class Array(np.ndarray):
             self.itemsize,
             np.uint32
             ).reshape(self.shape)
+
+    def invalidate(self):
+        self.vcsm.invalidate(self.usraddr, self.nbytes)
+
+    def clean(self):
+        self.vcsm.clean(self.usraddr, self.nbytes)
 
 class Memory(object):
     def __init__(self, vcsm, size, cache_mode = rpi_vcsm.CACHE_NONE):
@@ -59,9 +69,11 @@ class Memory(object):
         self.buffer = None
 
 class Program(object):
-    def __init__(self, code_addr, code):
+    def __init__(self, code_addr, usraddr, code, size):
         self.address = code_addr
+        self.usraddr = usraddr
         self.code    = code
+        self.size    = size
 
 class Driver(object):
     def __init__(self,
@@ -74,6 +86,12 @@ class Driver(object):
         self.mailbox.enable_qpu(1)
         self.vcsm = rpi_vcsm.VCSM.VCSM()
         self.memory  = None
+
+        if cache_mode in [rpi_vcsm.CACHE_HOST, rpi_vcsm.CACHE_BOTH]:
+            self.is_cacheop_needed = True
+        else:
+            self.is_cacheop_needed = False
+
         try:
             self.data_area_size = data_area_size
             self.code_area_size = code_area_size
@@ -90,7 +108,9 @@ class Driver(object):
             self.memory = Memory(self.vcsm, total, cache_mode=cache_mode)
 
             self.message = Array(
+                    vcsm = self.vcsm,
                     address = self.memory.busaddr + self.msg_area_base,
+                    usraddr = self.memory.usraddr + self.msg_area_base,
                     buffer  = self.memory.buffer,
                     offset = self.msg_area_base,
                     shape = (self.max_threads, 2),
@@ -116,9 +136,11 @@ class Driver(object):
 
     def copy(self, arr):
         new_arr = Array(
+                vcsm    = self.vcsm,
                 shape   = arr.shape,
                 dtype   = arr.dtype,
                 address = self.memory.busaddr + self.data_pos,
+                usraddr = self.memory.usraddr + self.data_pos,
                 buffer  = self.memory.buffer,
                 offset  = self.data_pos
                 )
@@ -131,7 +153,9 @@ class Driver(object):
     def alloc(self, *args, **kwargs):
         arr = Array(
                 *args,
+                vcsm    = self.vcsm,
                 address = self.memory.busaddr + self.data_pos,
+                usraddr = self.memory.usraddr + self.data_pos,
                 buffer  = self.memory.buffer,
                 offset  = self.data_pos,
                 **kwargs)
@@ -153,9 +177,10 @@ class Driver(object):
         if self.code_pos + len(code) > self.data_area_base:
             raise DriverError('Program too long')
         code_addr = self.memory.busaddr + self.code_pos
+        usraddr = self.memory.usraddr + self.code_pos
         self.memory.buffer[self.code_pos:self.code_pos+len(code)] = code
         self.code_pos += len(code)
-        return Program(code_addr, code)
+        return Program(code_addr, usraddr, code, len(code))
 
     def execute(self, n_threads, program, uniforms = None, timeout = 10000):
         if not (1 <= n_threads and n_threads <= self.max_threads):
@@ -169,6 +194,14 @@ class Driver(object):
 
         self.message[:n_threads, 1] = program.address
 
+        if self.is_cacheop_needed:
+            uniforms.clean()
+            self.vcsm.clean(program.usraddr, program.size)
+            self.message.clean()
         r = self.mailbox.execute_qpu(n_threads, self.message.address, 0, timeout)
+        if self.is_cacheop_needed:
+            uniforms.invalidate()
+            self.vcsm.invalidate(program.usraddr, program.size)
+            self.message.invalidate()
         if r > 0:
             raise DriverError('QPU execution timeout')
