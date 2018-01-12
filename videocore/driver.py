@@ -6,6 +6,8 @@ import mmap
 
 import numpy as np
 
+import rpi_vcsm.VCSM
+
 from videocore.mailbox import MailBox
 from videocore.assembler import assemble
 
@@ -32,45 +34,29 @@ class Array(np.ndarray):
             ).reshape(self.shape)
 
 class Memory(object):
-    def __init__(self, mailbox, size):
+    def __init__(self, vcsm, size, cache_mode = rpi_vcsm.CACHE_NONE):
         self.size = size
-        self.mailbox = mailbox
-        self.handle  = None
-        self.base  = None
+        self.vcsm = vcsm
+        self.handle = None   # vcsm handle which corresponds to a memory area
+        self.busaddr = None  # bus address used for QPU
+        self.usraddr = None  # user virtual address used in user CPU program
+        self.buffer = None   # mmap object of the memory area
         try:
-            if self._is_pi2():
-                mem_flag = MailBox.MEM_FLAG_DIRECT
-            else:
-                mem_flag = MailBox.MEM_FLAG_L1_NONALLOCATING
-            self.handle  = self.mailbox.allocate_memory(size, 4096, mem_flag)
+            (self.handle, self.busaddr, self.usraddr, self.buffer) = \
+                    vcsm.malloc_cache(size, cache_mode, 'py-videocore')
             if self.handle == 0:
                 raise DriverError('Failed to allocate QPU device memory')
-
-            self.baseaddr = self.mailbox.lock_memory(self.handle)
-            fd = os.open('/dev/mem', os.O_RDWR|os.O_SYNC)
-            self.base = mmap.mmap(fd, size, mmap.MAP_SHARED, mmap.PROT_READ|mmap.PROT_WRITE,
-                    offset = self._to_phys(self.baseaddr))
-            os.close(fd)
         except:
-            if self.base:
-                self.base.close()
-            if self.handle:
-                self.mailbox.unlock_memory(self.handle)
-                self.mailbox.release_memory(self.handle)
+            self.close()
             raise
 
     def close(self):
-        self.base.close()
-        self.mailbox.unlock_memory(self.handle)
-        self.mailbox.release_memory(self.handle)
-
-    def _is_pi2(self):
-        rev = self.mailbox.get_board_revision()
-        return (rev & 0xffff) == 0x1041
-
-    def _to_phys(self, bus_addr):
-        return bus_addr & ~0xC0000000
-
+        if self.handle:
+            self.vcsm.free(self.handle, self.buffer)
+        self.handle = None
+        self.busaddr = None
+        self.usraddr = None
+        self.buffer = None
 
 class Program(object):
     def __init__(self, code_addr, code):
@@ -81,10 +67,12 @@ class Driver(object):
     def __init__(self,
             data_area_size = DEFAULT_DATA_AREA_SIZE,
             code_area_size = DEFAULT_CODE_AREA_SIZE,
-            max_threads    = DEFAULT_MAX_THREADS
+            max_threads    = DEFAULT_MAX_THREADS,
+            cache_mode     = rpi_vcsm.CACHE_NONE
             ):
         self.mailbox = MailBox()
         self.mailbox.enable_qpu(1)
+        self.vcsm = rpi_vcsm.VCSM.VCSM()
         self.memory  = None
         try:
             self.data_area_size = data_area_size
@@ -99,25 +87,25 @@ class Driver(object):
             self.data_pos = self.data_area_base
 
             total = data_area_size + code_area_size + max_threads * 64
-            self.memory = Memory(self.mailbox, total)
+            self.memory = Memory(self.vcsm, total, cache_mode=cache_mode)
 
             self.message = Array(
-                    address = self.memory.baseaddr + self.msg_area_base,
-                    buffer  = self.memory.base,
+                    address = self.memory.busaddr + self.msg_area_base,
+                    buffer  = self.memory.buffer,
                     offset = self.msg_area_base,
                     shape = (self.max_threads, 2),
                     dtype = np.uint32)
         except:
-            if self.memory:
-                self.memory.close()
-            self.mailbox.enable_qpu(0)
-            self.mailbox.close()
+            self.close()
             raise
 
     def close(self):
-        self.memory.close()
+        if self.memory:
+            self.memory.close()
+        self.memory = None
         self.mailbox.enable_qpu(0)
         self.mailbox.close()
+        self.mailbox = None
 
     def __enter__(self):
         return self
@@ -130,8 +118,8 @@ class Driver(object):
         new_arr = Array(
                 shape   = arr.shape,
                 dtype   = arr.dtype,
-                address = self.memory.baseaddr + self.data_pos,
-                buffer  = self.memory.base,
+                address = self.memory.busaddr + self.data_pos,
+                buffer  = self.memory.buffer,
                 offset  = self.data_pos
                 )
         if self.data_pos + new_arr.nbytes > self.msg_area_base:
@@ -143,8 +131,8 @@ class Driver(object):
     def alloc(self, *args, **kwargs):
         arr = Array(
                 *args,
-                address = self.memory.baseaddr + self.data_pos,
-                buffer  = self.memory.base,
+                address = self.memory.busaddr + self.data_pos,
+                buffer  = self.memory.buffer,
                 offset  = self.data_pos,
                 **kwargs)
         if self.data_pos + arr.nbytes > self.msg_area_base:
@@ -164,8 +152,8 @@ class Driver(object):
         code = memoryview(program).tobytes()
         if self.code_pos + len(code) > self.data_area_base:
             raise DriverError('Program too long')
-        code_addr = self.memory.baseaddr + self.code_pos
-        self.memory.base[self.code_pos:self.code_pos+len(code)] = code
+        code_addr = self.memory.busaddr + self.code_pos
+        self.memory.buffer[self.code_pos:self.code_pos+len(code)] = code
         self.code_pos += len(code)
         return Program(code_addr, code)
 
