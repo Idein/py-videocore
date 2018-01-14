@@ -3,6 +3,7 @@
 import os
 import struct
 import mmap
+from math import ceil
 
 import numpy as np
 
@@ -11,7 +12,7 @@ import rpi_vcsm.VCSM
 from videocore.mailbox import MailBox
 from videocore.assembler import assemble
 
-DEFAULT_MAX_THREADS = 1024
+DEFAULT_MAX_THREADS = 12
 DEFAULT_DATA_AREA_SIZE = 32 * 1024 * 1024
 DEFAULT_CODE_AREA_SIZE = 1024 * 1024
 
@@ -22,11 +23,21 @@ class Array(np.ndarray):
     def __new__(cls, *args, **kwargs):
         vcsm = kwargs.pop('vcsm')
         address = kwargs.pop('address')  # bus address
-        usraddr = kwargs.pop('usraddr')  # user virtual address
-        obj = super(Array, cls).__new__(cls, *args, **kwargs)
+        usraddr = kwargs.pop('usraddr')
+        buffer = kwargs.pop('buffer')
+        offset = kwargs.pop('offset')
+
+        try:
+            obj = super(Array, cls).__new__(cls, *args, buffer = buffer,
+                                            offset = offset, **kwargs)
+        except TypeError as e:
+            raise DriverError('Array too large: {0}'.format(e))
+
         obj.vcsm = vcsm
         obj.address = address
         obj.usraddr = usraddr
+        obj.buffer = buffer
+        obj.offset = offset
         return obj
 
     def addresses(self):
@@ -71,6 +82,50 @@ class Memory(object):
         self.usraddr = None
         self.buffer = None
 
+class Mempool(object):
+    def __init__(self, size, **kwargs):
+        self.size = size
+        self.vcsm = kwargs.pop('vcsm')
+        cache_mode = kwargs.pop('cache_mode')
+
+        self.start_pos = {}
+        self.cur_pos = {}
+        total = 0
+        for (n, s) in size.items():
+            self.start_pos[n] = self.cur_pos[n] = total
+            total += s
+        self.total = total
+
+        try:
+            self.memory = Memory(self.vcsm, total, cache_mode=cache_mode)
+        except:
+            self.close()
+            raise
+
+    def close(self):
+        self.vcsm = None
+        self.size = None
+        if self.memory:
+            self.memory.close()
+        self.memory = None
+        self.start_pos = None
+        self.cur_pos = None
+
+    def alloc(self, name, *args, **kwargs):
+        pos = self.cur_pos[name]
+        arr = Array(
+                *args,
+                vcsm = self.vcsm,
+                address = self.memory.busaddr + pos,
+                usraddr = self.memory.usraddr + pos,
+                buffer  = self.memory.buffer,
+                offset  = pos,
+                **kwargs)
+        if (pos - self.start_pos[name]) + arr.nbytes > self.size[name]:
+            raise DriverError('Array too large')
+        self.cur_pos[name] += arr.nbytes
+        return arr
+
 class Program(object):
     def __init__(self, code_addr, usraddr, code, size):
         self.address = code_addr
@@ -88,44 +143,40 @@ class Driver(object):
         self.mailbox = MailBox()
         self.mailbox.enable_qpu(1)
         self.vcsm = rpi_vcsm.VCSM.VCSM()
-        self.memory  = None
 
         if cache_mode in [rpi_vcsm.CACHE_HOST, rpi_vcsm.CACHE_BOTH]:
             self.is_cacheop_needed = True
         else:
             self.is_cacheop_needed = False
 
+        self.max_threads = max_threads
+        message_area_size = max_threads * 2 * 4
+
         try:
-            self.data_area_size = data_area_size
-            self.code_area_size = code_area_size
-            self.max_threads = max_threads
+            # Non-cached memory area for code and message.
+            self.ctlmem = Mempool({'message': message_area_size,
+                                   'code': code_area_size},
+                                  vcsm = self.vcsm,
+                                  cache_mode = rpi_vcsm.CACHE_NONE)
+            # Memory area for uniforms and data with cache mode cache_mode.
+            self.datmem = Mempool({'data': data_area_size},
+                                  vcsm = self.vcsm, cache_mode = cache_mode)
 
-            self.code_area_base = 0
-            self.data_area_base = self.code_area_base + self.code_area_size
-            self.msg_area_base  = self.data_area_base + self.data_area_size
+            self.message = self.ctlmem.alloc('message',
+                                             shape = (self.max_threads, 2),
+                                             dtype = np.uint32)
 
-            self.code_pos = self.code_area_base
-            self.data_pos = self.data_area_base
-
-            total = data_area_size + code_area_size + max_threads * 64
-            self.memory = Memory(self.vcsm, total, cache_mode=cache_mode)
-
-            self.message = Array(
-                    vcsm = self.vcsm,
-                    address = self.memory.busaddr + self.msg_area_base,
-                    usraddr = self.memory.usraddr + self.msg_area_base,
-                    buffer  = self.memory.buffer,
-                    offset = self.msg_area_base,
-                    shape = (self.max_threads, 2),
-                    dtype = np.uint32)
         except:
             self.close()
             raise
 
     def close(self):
-        if self.memory:
-            self.memory.close()
-        self.memory = None
+        if self.ctlmem:
+            self.ctlmem.close()
+        self.ctlmem = None
+        if self.datmem:
+            self.datmem.close()
+        self.datmem = None
         self.mailbox.enable_qpu(0)
         self.mailbox.close()
         self.mailbox = None
@@ -138,34 +189,12 @@ class Driver(object):
         return exc_type is None
 
     def copy(self, arr):
-        new_arr = Array(
-                vcsm    = self.vcsm,
-                shape   = arr.shape,
-                dtype   = arr.dtype,
-                address = self.memory.busaddr + self.data_pos,
-                usraddr = self.memory.usraddr + self.data_pos,
-                buffer  = self.memory.buffer,
-                offset  = self.data_pos
-                )
-        if self.data_pos + new_arr.nbytes > self.msg_area_base:
-            raise DriverError('Array too large')
-        self.data_pos += new_arr.nbytes
+        new_arr = self.alloc(shape = arr.shape, dtype = arr.dtype)
         new_arr[:] = arr
         return new_arr
 
     def alloc(self, *args, **kwargs):
-        arr = Array(
-                *args,
-                vcsm    = self.vcsm,
-                address = self.memory.busaddr + self.data_pos,
-                usraddr = self.memory.usraddr + self.data_pos,
-                buffer  = self.memory.buffer,
-                offset  = self.data_pos,
-                **kwargs)
-        if self.data_pos + arr.nbytes > self.msg_area_base:
-            raise DriverError('Array too large')
-        self.data_pos += arr.nbytes
-        return arr
+        return self.datmem.alloc('data', *args, **kwargs)
 
     def array(self, *args, **kwargs):
         arr = np.array(*args, copy = False, **kwargs)
@@ -177,34 +206,30 @@ class Driver(object):
         if hasattr(program, '__call__'):
             program = assemble(program, *args, **kwargs)
         code = memoryview(program).tobytes()
-        if self.code_pos + len(code) > self.data_area_base:
-            raise DriverError('Program too long')
-        code_addr = self.memory.busaddr + self.code_pos
-        usraddr = self.memory.usraddr + self.code_pos
-        self.memory.buffer[self.code_pos:self.code_pos+len(code)] = code
-        self.code_pos += len(code)
-        return Program(code_addr, usraddr, code, len(code))
+        arr = self.ctlmem.alloc('code', shape = int(ceil(len(code) / 8.0)),
+                                dtype = np.uint64)
+        arr.buffer[arr.offset:arr.offset+len(code)] = code
+        return Program(arr.address, arr.usraddr, code, len(code))
 
     def execute(self, n_threads, program, uniforms = None, timeout = 10000):
         if not (1 <= n_threads and n_threads <= self.max_threads):
             raise DriverError('n_threads exceeds max_threads')
+
+        message = self.message
+
         if uniforms is not None:
             if not isinstance(uniforms, Array):
                 uniforms = self.array(uniforms, dtype = 'u4')
-            self.message[:n_threads, 0] = uniforms.addresses().reshape(n_threads, -1)[:, 0]
+            message[:n_threads, 0] = uniforms.addresses().reshape(n_threads, -1)[:, 0]
         else:
-            self.message[:n_threads, 0] = 0
+            message[:n_threads, 0] = 0
 
-        self.message[:n_threads, 1] = program.address
+        message[:n_threads, 1] = program.address
 
         if self.is_cacheop_needed:
             uniforms.clean()
-            self.vcsm.clean(program.usraddr, program.size)
-            self.message.clean()
-        r = self.mailbox.execute_qpu(n_threads, self.message.address, 0, timeout)
+        r = self.mailbox.execute_qpu(n_threads, message.address, 0, timeout)
         if self.is_cacheop_needed:
             uniforms.invalidate()
-            self.vcsm.invalidate(program.usraddr, program.size)
-            self.message.invalidate()
         if r > 0:
             raise DriverError('QPU execution timeout')
