@@ -82,7 +82,7 @@ def check_regfile(instrs):
 
     for out in outputs:
       for read in inputs:
-        if enc.GENERAL_PURPOSE_REGISTERS.has_key(out.name) and  out.name == read.name:
+        if enc.GENERAL_PURPOSE_REGISTERS.get(out.name, None) and  out.name == read.name:
           print ('warning: regfile is read next to writing instruction')
           print_around(instrs, current)
 
@@ -92,7 +92,7 @@ def extract_verbose(instr):
   return instr.verbose
 
 def check_main(instrs):
-  instrs = map(extract_verbose, instrs)
+  instrs = list (map(extract_verbose, instrs))
   for check in all_checks:
     check(instrs)
   return
