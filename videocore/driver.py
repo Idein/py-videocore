@@ -125,7 +125,7 @@ class Driver(object):
     def __exit__(self, exc_type, value, traceback):
         self.close()
         return exc_type is None
-    
+
     def copy(self, arr):
         new_arr = Array(
                 shape   = arr.shape,
