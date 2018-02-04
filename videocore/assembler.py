@@ -277,7 +277,8 @@ class AddEmitter(Emitter):
         elif pack and not unpack:
             pm = 0
 
-        cond_add = enc._COND[kwargs.get('cond', 'always')]
+        cond_add_str = kwargs.get('cond', 'always')
+        cond_add = enc._COND[cond_add_str]
         cond_mul = enc._COND['never']
 
         insn = AluInsn(
@@ -290,7 +291,7 @@ class AddEmitter(Emitter):
                 )
 
         if self.asm.sanity_check:
-            insn.verbose = AddInstr(op_add, dst, opd1, opd2, sig, set_flags, cond_add)
+            insn.verbose = AddInstr(enc.ADD_INSN_REV[op_add], dst, opd1, opd2, sig, set_flags, cond_add_str)
         self.asm._emit(insn)
 
         # Create MulEmitter which holds arguments of Add ALU for dual
@@ -372,7 +373,8 @@ class MulEmitter(Emitter):
                 raddr_b = 48 + rotate%16
 
         cond_add = self.cond_add
-        cond_mul = enc._COND[kwargs.get('cond', 'always')]
+        cond_mul_str = kwargs.get('cond', 'always')
+        cond_mul = enc._COND[cond_mul_str]
 
         insn = AluInsn(
                 sig=sig_bits, unpack=unpack, pm=pm, pack=pack,
@@ -383,7 +385,7 @@ class MulEmitter(Emitter):
                 mul_a=muxes[2], mul_b=muxes[3]
                 )
         if self.asm.sanity_check:
-            insn.verbose = MulInstr(op_mul, mul_dst, mul_opd1, mul_opd2, self.sig, self.set_flags, cond_mul)
+            insn.verbose = MulInstr(enc.MUL_INSN_REV[op_mul], mul_dst, mul_opd1, mul_opd2, self.sig, self.set_flags, cond_mul_str)
         self.asm._emit(insn, increment=self.increment)
 
 class LoadEmitter(Emitter):
@@ -524,7 +526,7 @@ class BranchEmitter(Emitter):
             waddr_mul=waddr_mul, immediate=imm
             )
         if self.asm.sanity_check:
-            insn.verbose = BranchInstr(cond_br, target, reg, absolute, link)
+            insn.verbose = BranchInstr(enc.COND_REV[cond_br], target, reg, absolute, link)
         self.asm._emit(insn)
 
 class SemaEmitter(Emitter):

@@ -64,14 +64,14 @@ class AddInstr(InstrBase):
          enc._ADD_INSN_REV[self.op] == 'bor':
       return 'mutex_release'
 
-    if enc._ADD_INSN_REV[self.op] == 'nop':
+    if self.op == 'nop':
       s = 'nop'
     else :
-      s = '{}, {}, {}, {}'.format(enc._ADD_INSN_REV[self.op], self.dst, self.opd1, self.opd2)
+      s = '{}, {}, {}, {}'.format(self.op, self.dst, self.opd1, self.opd2)
     if self.set_flag:
       s += ' set_flag=True'
-    if not (self.cond == enc._COND['always']):
-      s += 'cond={}'.format(enc._CONV_REV[cond])
+    if not (self.cond == 'always'):
+      s += 'cond={}'.format(cond)
     return s
 
   def get_dst(self):
@@ -94,14 +94,14 @@ class MulInstr(InstrBase):
     self.cond = cond
 
   def __str__(self):
-    if enc._MUL_INSN_REV[self.op] == 'nop':
+    if self.op == 'nop':
       s = 'nop'
     else:
-      s = '{}, {}, {}, {}'.format(enc._MUL_INSN_REV[self.op], self.dst, self.opd1, self.opd2)
+      s = '{}, {}, {}, {}'.format(self.op, self.dst, self.opd1, self.opd2)
     if self.set_flag:
       s += ' set_flag=True'
-    if not (self.cond == enc._COND['always']):
-      s += 'cond={}'.format(enc._CONV_REV[self.cond])
+    if not (self.cond == 'always'):
+      s += 'cond={}'.format(self.cond)
     return s
 
   def get_dst(self):
@@ -144,7 +144,7 @@ class BranchInstr(InstrBase):
     self.link = link
 
   def __str__(self):
-    return '{}(L.{})'.format(enc._BRANCH_INSN_REV[self.cond_br], self.target.name)
+    return '{}(L.{})'.format(self.cond_br, self.target.name)
 
 class SemaInstr(InstrBase):
   def __init__(self, sa, sema_id):
