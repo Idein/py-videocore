@@ -22,7 +22,7 @@ import numpy
 from videocore.vinstr import AddInstr, MulInstr, LoadImmInstr, BranchInstr, SemaInstr, ComposedInstr
 from videocore.checker import check_main
 import videocore.encoding as enc
-from videocore.encoding import REGISTERS, Register, _INPUT_MUXES
+from videocore.encoding import REGISTERS, Register, AssembleError
 
 class _partialmethod(partial):
     'A descriptor for methods behaves like :py:class:`functools.partial.`'
@@ -167,7 +167,7 @@ class Emitter(object):
         # Assign input muxes for accumulators.
         for i, opd in enumerate(operands):
             if isinstance(opd, Register) and opd.name in enc.ACCUMULATORS:
-                muxes[i] = _INPUT_MUXES[opd.name]
+                muxes[i] = enc._INPUT_MUXES[opd.name]
 
         if all(m is not None for m in muxes):
             null_addr = REGISTERS['null'].addr
@@ -180,9 +180,9 @@ class Emitter(object):
             if opd.spec & enc._REG_BR and not (opd.spec & enc._REG_AR):
                 if raddr_b is None:
                     raddr_b = opd.addr
-                    muxes[i] = _INPUT_MUXES['B']
+                    muxes[i] = enc._INPUT_MUXES['B']
                 elif raddr_b == opd.addr:
-                    muxes[i] = _INPUT_MUXES['B']
+                    muxes[i] = enc._INPUT_MUXES['B']
                 else:
                     raise AssembleError('Too many regfile B source operand')
 
@@ -194,9 +194,9 @@ class Emitter(object):
             imm = enc._SMALL_IMM[repr(opd)]
             if small_imm is None:
                 small_imm = imm
-                muxes[i] = _INPUT_MUXES['B']
+                muxes[i] = enc._INPUT_MUXES['B']
             elif small_imm == imm:
-                muxes[i] = _INPUT_MUXES['B']
+                muxes[i] = enc._INPUT_MUXES['B']
             else:
                 raise AssembleError('Too many immediates')
 
@@ -215,9 +215,9 @@ class Emitter(object):
             if opd.spec & enc._REG_AR and not (opd.spec & enc._REG_BR):
                 if raddr_a is None:
                     raddr_a = opd.addr
-                    muxes[i] = _INPUT_MUXES['A']
+                    muxes[i] = enc._INPUT_MUXES['A']
                 elif raddr_a == opd.addr:
-                    muxes[i] = _INPUT_MUXES['A']
+                    muxes[i] = enc._INPUT_MUXES['A']
                 else:
                     raise AssembleError('Too many regfile A source operand')
 
@@ -230,10 +230,10 @@ class Emitter(object):
 
             if raddr_a is None or raddr_a == opd.addr:
                 raddr_a = opd.addr
-                muxes[i] = _INPUT_MUXES['A']
+                muxes[i] = enc._INPUT_MUXES['A']
             elif (small_imm is None and raddr_b is None) or raddr_b == opd.addr:
                 raddr_b = opd.addr
-                muxes[i] = _INPUT_MUXES['B']
+                muxes[i] = enc._INPUT_MUXES['B']
             else:
                 raise AssembleError('Failed to locate operand {}'.format(opd))
 
@@ -385,7 +385,7 @@ class MulEmitter(Emitter):
                 mul_a=muxes[2], mul_b=muxes[3]
                 )
         if self.asm.sanity_check:
-            insn.verbose = MulInstr(enc.MUL_INSN_REV[op_mul], mul_dst, mul_opd1, mul_opd2, self.sig, self.set_flags, cond_mul_str)
+            insn.verbose = MulInstr(enc._MUL_INSN_REV[op_mul], mul_dst, mul_opd1, mul_opd2, self.sig, self.set_flags, cond_mul_str)
         self.asm._emit(insn, increment=self.increment)
 
 class LoadEmitter(Emitter):

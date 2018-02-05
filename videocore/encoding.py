@@ -1,3 +1,9 @@
+
+
+
+class AssembleError(Exception):
+    'Exception related to QPU assembler'
+
 #============================== Encoding tables ===============================
 
 # Signaling bits.
