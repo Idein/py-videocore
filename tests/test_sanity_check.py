@@ -1,4 +1,4 @@
-from videocore.assembler import qpu, assemble
+from videocore.assembler import qpu, sanity_check
 
 @qpu
 def regfile_1(asm):
@@ -23,34 +23,7 @@ def delay_slot_1(asm):
   jzc(L.label1)
   exit()
 
-@qpu
-def mutex_1(asm):
-  mutex_acquire()
-  mutex_release()
-  exit()
-
-@qpu
-def label_1(asm):
-  L.label1
-  iadd (r0, r1, r2)
-  iadd (r0, r1, r2)
-  L.label2
-  iadd (r0, r1, r2, set_flags=False)
-  iadd (r0, r1, r2, set_flags=True)
-  jzc(L.label2)
-  nop(); nop(); nop()
-  exit()
-
-@qpu
-def semaphore_1(asm):
-  sema_up(0)
-  sema_up(1)
-  sema_down(1)
-  sema_down(0)
-  exit()
-
-assemble(regfile_1, sanity_check=True)
-assemble(composed_1, sanity_check=True)
-assemble(delay_slot_1, sanity_check=True)
-assemble(mutex_1, sanity_check=True)
-assemble(semaphore_1, sanity_check=True)
+def test_sanity_check():
+  assert (not sanity_check(regfile_1))
+  assert (not sanity_check(composed_1))
+  assert (not sanity_check(delay_slot_1))

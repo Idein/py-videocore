@@ -27,12 +27,14 @@ def print_around(instrs, target):
 #================ check functions ======================================
 
 def check_branch_delay_slot(instrs):
+  f = True
   for instr in instrs:
     if (is_branch (instr)):
       index = instrs.index(instr)
       if len(instrs) < index + 3:
         print ('warning: instructions of delay_slot is short?')
         print_around(instrs, instr)
+        f = False
       else:
         delay_slot = instrs[index+1:index+4]
 
@@ -40,18 +42,25 @@ def check_branch_delay_slot(instrs):
           if (is_branch (item)):
             print ('warning: branch is located in the position of delay_slot')
             print_around(instrs, item)
+            f = False
+
+  return f
 
 # TODO: check signals
 # writing to 'tmu0_s', and sending signal 'load tmu0' make invalid
 def check_composed(instrs):
+  f = True
   for instr in instrs:
     if (is_composed(instr)):
       v = instr
       if v.add_instr.dst == v.mul_instr.dst and v.add_instr.sig != 'thread end':
         print ('warning: dst is the same register in the following composed-instruction')
         print_around(instrs, instr)
+        f = False
+  return f
 
 def check_regfile(instrs):
+  f = True
   if len(instrs) == 1:
     return
 
@@ -85,14 +94,18 @@ def check_regfile(instrs):
         if enc.GENERAL_PURPOSE_REGISTERS.get(out.name, None) and  out.name == read.name:
           print ('warning: regfile is read next to writing instruction')
           print_around(instrs, current)
+          f = False
+
+    return f
 
 all_checks = [check_composed, check_regfile, check_branch_delay_slot]
 
 def extract_verbose(instr):
   return instr.verbose
 
-def check_main(instrs):
+def check_main(instrs, labels):
   instrs = list (map(extract_verbose, instrs))
+  f = True
   for check in all_checks:
-    check(instrs)
-  return
+    f = f and check(instrs)
+  return f
