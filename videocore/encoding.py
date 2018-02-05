@@ -291,3 +291,75 @@ REGISTERS = {}
 REGISTERS.update(GENERAL_PURPOSE_REGISTERS)
 REGISTERS.update(IO_REGISTERS)
 REGISTERS.update(ACCUMULATORS)
+
+#============================ Instruction encoding ============================
+
+
+class Insn(Structure):
+    'Instruction encoding.'
+
+    def to_bytes(self):
+        'Encode instruction to string.'
+        return string_at(byref(self), sizeof(self))
+
+    @classmethod
+    def from_bytes(self, buf):
+        'Decode string (or buffer object of length 64 bit) to instruction.'
+        bytes, = unpack('Q', buf)
+        sig = bytes >> 60
+        if sig == _SIGNAL['branch']:
+            return BranchInsn.from_buffer_copy(buf)
+        elif sig == _SIGNAL['load']:
+            if (bytes >> 57) & 0x7 == 4:
+                return SemaInsn.from_buffer_copy(buf)
+            else:
+                return LoadInsn.from_buffer_copy(buf)
+        else:
+            return AluInsn.from_buffer_copy(buf)
+
+    def __eq__(self, other):
+        return (
+            self.__class__ == other.__class__ and
+            all(getattr(self, f) == getattr(other, f)
+                for f, _, _ in self._fields_ if f != 'dontcare'
+                ))
+
+    def __ne__(self, other):
+        return not (self == other)
+
+    def __repr__(self):
+        return '{class_name}({fields})'.format(
+            class_name=self.__class__.__name__,
+            fields =', '.join(
+                    f + '=' + "0x%x" % getattr(self, f)
+                    for f, _, _ in reversed(self._fields_) if f != 'dontcare'
+                ))
+
+class AluInsn(Insn):
+    _fields_ = [ (f, c_ulong, n) for f, n in [
+        ('mul_b', 3), ('mul_a', 3), ('add_b', 3), ('add_a', 3), ('raddr_b', 6),
+        ('raddr_a', 6), ('op_add', 5), ('op_mul', 3), ('waddr_mul', 6),
+        ('waddr_add', 6), ('ws', 1), ('sf', 1), ('cond_mul', 3),
+        ('cond_add', 3), ('pack', 4), ('pm', 1), ('unpack', 3), ('sig', 4)
+        ]]
+
+class BranchInsn(Insn):
+    _fields_ = [ (f, c_ulong, n) for f, n in [
+        ('immediate', 32), ('waddr_mul', 6), ('waddr_add', 6), ('ws', 1),
+        ('raddr_a', 5), ('reg', 1), ('rel', 1), ('cond_br', 4),
+        ('dontcare', 4), ('sig', 4)
+        ]]
+
+class LoadInsn(Insn):
+    _fields_ = [ (f, c_ulong, n) for f, n in [
+        ('immediate', 32), ('waddr_mul', 6), ('waddr_add', 6), ('ws', 1),
+        ('sf', 1), ('cond_mul', 3), ('cond_add', 3), ('pack', 4), ('pm', 1),
+        ('unpack', 3), ('sig', 4)
+        ]]
+
+class SemaInsn(Insn):
+    _fields_ = [ (f, c_ulong, n) for f, n in [
+        ('semaphore', 4), ('sa', 1), ('dontcare', 27), ('waddr_mul', 6),
+        ('waddr_add', 6), ('ws', 1), ('sf', 1), ('cond_mul', 3),
+        ('cond_add', 3), ('pack', 4), ('pm', 1), ('unpack', 3), ('sig', 4)
+        ]]

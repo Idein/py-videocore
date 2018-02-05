@@ -12,7 +12,6 @@ The QPU instruction set is described in the section 3 of the following document
 from __future__ import print_function
 import sys
 from functools import partial
-from ctypes import Structure, c_ulong, string_at, byref, sizeof
 from struct import pack, unpack
 import inspect
 import ast
@@ -29,81 +28,6 @@ class _partialmethod(partial):
     def __get__(self, obj, type):
         return partial(self.func, obj,
                        *(self.args or ()), **(self.keywords or {}))
-
-class AssembleError(Exception):
-    'Exception related to QPU assembler'
-
-#============================ Instruction encoding ============================
-
-
-class Insn(Structure):
-    'Instruction encoding.'
-
-    def to_bytes(self):
-        'Encode instruction to string.'
-        return string_at(byref(self), sizeof(self))
-
-    @classmethod
-    def from_bytes(self, buf):
-        'Decode string (or buffer object of length 64 bit) to instruction.'
-        bytes, = unpack('Q', buf)
-        sig = bytes >> 60
-        if sig == enc._SIGNAL['branch']:
-            return BranchInsn.from_buffer_copy(buf)
-        elif sig == enc._SIGNAL['load']:
-            if (bytes >> 57) & 0x7 == 4:
-                return SemaInsn.from_buffer_copy(buf)
-            else:
-                return LoadInsn.from_buffer_copy(buf)
-        else:
-            return AluInsn.from_buffer_copy(buf)
-
-    def __eq__(self, other):
-        return (
-            self.__class__ == other.__class__ and
-            all(getattr(self, f) == getattr(other, f)
-                for f, _, _ in self._fields_ if f != 'dontcare'
-                ))
-
-    def __ne__(self, other):
-        return not (self == other)
-
-    def __repr__(self):
-        return '{class_name}({fields})'.format(
-            class_name=self.__class__.__name__,
-            fields =', '.join(
-                    f + '=' + "0x%x" % getattr(self, f)
-                    for f, _, _ in reversed(self._fields_) if f != 'dontcare'
-                ))
-
-class AluInsn(Insn):
-    _fields_ = [ (f, c_ulong, n) for f, n in [
-        ('mul_b', 3), ('mul_a', 3), ('add_b', 3), ('add_a', 3), ('raddr_b', 6),
-        ('raddr_a', 6), ('op_add', 5), ('op_mul', 3), ('waddr_mul', 6),
-        ('waddr_add', 6), ('ws', 1), ('sf', 1), ('cond_mul', 3),
-        ('cond_add', 3), ('pack', 4), ('pm', 1), ('unpack', 3), ('sig', 4)
-        ]]
-
-class BranchInsn(Insn):
-    _fields_ = [ (f, c_ulong, n) for f, n in [
-        ('immediate', 32), ('waddr_mul', 6), ('waddr_add', 6), ('ws', 1),
-        ('raddr_a', 5), ('reg', 1), ('rel', 1), ('cond_br', 4),
-        ('dontcare', 4), ('sig', 4)
-        ]]
-
-class LoadInsn(Insn):
-    _fields_ = [ (f, c_ulong, n) for f, n in [
-        ('immediate', 32), ('waddr_mul', 6), ('waddr_add', 6), ('ws', 1),
-        ('sf', 1), ('cond_mul', 3), ('cond_add', 3), ('pack', 4), ('pm', 1),
-        ('unpack', 3), ('sig', 4)
-        ]]
-
-class SemaInsn(Insn):
-    _fields_ = [ (f, c_ulong, n) for f, n in [
-        ('semaphore', 4), ('sa', 1), ('dontcare', 27), ('waddr_mul', 6),
-        ('waddr_add', 6), ('ws', 1), ('sf', 1), ('cond_mul', 3),
-        ('cond_add', 3), ('pack', 4), ('pm', 1), ('unpack', 3), ('sig', 4)
-        ]]
 
 #============================ Instruction emitter =============================
 
@@ -281,7 +205,7 @@ class AddEmitter(Emitter):
         cond_add = enc._COND[cond_add_str]
         cond_mul = enc._COND['never']
 
-        insn = AluInsn(
+        insn = enc.AluInsn(
                 sig=sig_bits, unpack=unpack, pm=pm, pack=pack,
                 sf=set_flags, ws=write_swap, cond_add=cond_add,
                 cond_mul=cond_mul, op_add=op_add, op_mul=enc._MUL_INSN['nop'],
@@ -291,7 +215,7 @@ class AddEmitter(Emitter):
                 )
 
         if self.asm.sanity_check:
-            insn.verbose = AddInstr(enc.ADD_INSN_REV[op_add], dst, opd1, opd2, sig, set_flags, cond_add_str)
+            insn.verbose = AddInstr(enc._ADD_INSN_REV[op_add], dst, opd1, opd2, sig, set_flags, cond_add_str)
         self.asm._emit(insn)
 
         # Create MulEmitter which holds arguments of Add ALU for dual
@@ -376,7 +300,7 @@ class MulEmitter(Emitter):
         cond_mul_str = kwargs.get('cond', 'always')
         cond_mul = enc._COND[cond_mul_str]
 
-        insn = AluInsn(
+        insn = enc.AluInsn(
                 sig=sig_bits, unpack=unpack, pm=pm, pack=pack,
                 sf=self.set_flags, ws=write_swap, cond_add=cond_add,
                 cond_mul=cond_mul, op_add=self.op_add, op_mul=op_mul,
@@ -459,7 +383,7 @@ class LoadEmitter(Emitter):
         cond_add = cond_mul = enc._COND[kwargs.get('cond', 'always')]
         set_flags = kwargs.get('set_flags', False)
 
-        insn = LoadInsn(
+        insn = enc.LoadInsn(
                 sig=0xe, unpack=unpack, pm=0, pack=pack, cond_add=cond_add,
                 cond_mul=cond_mul, sf=set_flags, ws=write_swap,
                 waddr_add=waddr_add, waddr_mul=waddr_mul, immediate=imm
@@ -520,13 +444,13 @@ class BranchEmitter(Emitter):
         if pack:
             raise AssembleError('Packing is not available for link register')
 
-        insn = BranchInsn(
+        insn = enc.BranchInsn(
             sig=0xF, cond_br=cond_br, rel=not absolute, reg=use_reg,
             raddr_a=raddr_a, ws=write_swap, waddr_add=waddr_add,
             waddr_mul=waddr_mul, immediate=imm
             )
         if self.asm.sanity_check:
-            insn.verbose = BranchInstr(enc.COND_REV[cond_br], target, reg, absolute, link)
+            insn.verbose = BranchInstr(enc._COND_REV[cond_br], target, reg, absolute, link)
         self.asm._emit(insn)
 
 class SemaEmitter(Emitter):
@@ -537,7 +461,7 @@ class SemaEmitter(Emitter):
             raise AssembleError('Semaphore id must be in range (0..15)')
 
         null_addr = REGISTERS['null'].addr
-        insn = SemaInsn(
+        insn = enc.SemaInsn(
             sig=0xE, unpack=4, pm=0, pack=0, cond_add=1, cond_mul=1, sf=0,
             ws=0, waddr_add=null_addr, waddr_mul=null_addr, sa=sa,
             semaphore=sema_id)
@@ -624,7 +548,7 @@ class Assembler(object):
                 raise AssembleError('Undefined label {}'.format(label))
 
             insn = self._instructions[i]
-            assert(isinstance(insn, BranchInsn))
+            assert(isinstance(insn, enc.BranchInsn))
             assert(insn.rel)
 
             insn.immediate = labels[label] - 8*(i + 4)
@@ -886,8 +810,13 @@ def assemble(f, *args, **kwargs):
         asm = Assembler()
     f(asm, *args, **kwargs)
     if asm.sanity_check:
-        check_main(asm._instructions)
+        check_main(asm._instructions, asm._labels)
     return asm._get_code()
+
+def sanity_check(f, *args, **kwargs):
+    asm = Assembler(sanity_check=True)
+    f(asm, *args, **kwargs)
+    return check_main(asm._instructions, asm._labels)
 
 def print_qbin(program, file = sys.stdout, *args, **kwargs):
     'Print QPU program as .qbin.'
