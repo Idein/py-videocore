@@ -292,6 +292,26 @@ REGISTERS.update(GENERAL_PURPOSE_REGISTERS)
 REGISTERS.update(IO_REGISTERS)
 REGISTERS.update(ACCUMULATORS)
 
+#============================ Default Arguments ============================
+
+
+_r0 = REGISTERS['r0']
+__d = _ADD_INSN
+
+_ADD_DEFAULT_ARGS = {
+    __d['nop']  : [_r0, _r0, _r0],
+    __d['itof'] : [_r0],
+    __d['ftoi'] : [_r0],
+    __d['bnot'] : [_r0],
+    __d['clz']  : [_r0]
+}
+
+__d = _MUL_INSN
+_MUL_DEFAULT_ARGS = {
+    __d['nop'] : [_r0, _r0, _r0]
+}
+
+
 #============================ Instruction encoding ============================
 
 

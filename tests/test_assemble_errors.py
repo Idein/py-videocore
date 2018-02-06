@@ -245,3 +245,32 @@ def invalid_semaphore_insn(asm):
 
 def test_invalid_sema_insn():
     assert_raises(AssembleError, assemble, invalid_semaphore_insn)
+
+@qpu
+def missing_args3(asm):
+    mov (r0, r1)
+    nop().nop()
+    nop().nop(sig='load tmu0')
+    itof (r0, r1)
+    ftoi (r0, r1)
+    bnot (r0, r1)
+    clz (r0, r1)
+
+def test_missing_args1():
+    for name in enc._ADD_INSN:
+        if not enc._ADD_DEFAULT_ARGS.get(name):
+            @qpu
+            def f(asm):
+                name (r0, r0)
+            raises(TypeError, assemble, f)
+
+def test_missing_args2():
+    for name in enc._MUL_INSN:
+        if not enc._MUL_DEFAULT_ARGS.get(name):
+            @qpu
+            def f(asm):
+                name (r0, r0)
+            raises(TypeError, assemble, f)
+
+def test_missing_args3():
+    assert (assemble (missing_args3))
