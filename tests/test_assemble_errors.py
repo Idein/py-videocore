@@ -4,7 +4,7 @@ from nose.tools import raises, assert_raises
 from struct import pack
 from copy import deepcopy
 
-import videocore.assembler as A
+import videocore.encoding as enc
 from videocore.assembler import REGISTERS, AssembleError, assemble, qpu
 
 
@@ -26,23 +26,23 @@ def test_pack_unpack():
 
 #============================ Instruction encoding ============================
 
-SAMPLE_ALU_INSN = A.AluInsn(
+SAMPLE_ALU_INSN = enc.AluInsn(
     sig=0, unpack=1, pm=1, pack=2, cond_add=3, cond_mul=4, sf=1, ws=1,
     waddr_add=53, waddr_mul=12, op_mul=4, op_add=2, raddr_a=33, raddr_b=53,
     add_a=4, add_b=7, mul_a=6, mul_b=2
     )
 
-SAMPLE_BRANCH_INSN = A.BranchInsn(
+SAMPLE_BRANCH_INSN = enc.BranchInsn(
     sig=0xf, cond_br=13, rel=1, reg=0, raddr_a=27, ws=1, waddr_add=53,
     waddr_mul=12, immediate=0x12345678
     )
 
-SAMPLE_LOAD_INSN = A.LoadInsn(
+SAMPLE_LOAD_INSN = enc.LoadInsn(
     sig=0xe, unpack=1, pm=1, pack=2, cond_add=3, cond_mul=4, sf=1, ws=1,
     waddr_add=53, waddr_mul=12, immediate=0x12345678
     )
 
-SAMPLE_SEMA_INSN = A.SemaInsn(
+SAMPLE_SEMA_INSN = enc.SemaInsn(
     sig=0xe, unpack=4, pm=1, pack=2, cond_add=3, cond_mul=4, sf=1, ws=1,
     waddr_add=53, waddr_mul=12, sa=1, semaphore=13
     )
@@ -54,7 +54,7 @@ def test_equality():
 def test_bytes_conversion():
     for sample_insn in [SAMPLE_ALU_INSN, SAMPLE_BRANCH_INSN,
                         SAMPLE_LOAD_INSN, SAMPLE_SEMA_INSN]:
-        insn = A.Insn.from_bytes(sample_insn.to_bytes())
+        insn = enc.Insn.from_bytes(sample_insn.to_bytes())
         assert insn == sample_insn
 
 def test_insn_repr():
