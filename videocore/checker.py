@@ -3,9 +3,6 @@ from videocore.encoding import Register
 
 # helper functions
 
-def instruction_number(instrs, target):
-  return instrs.index(target)
-
 def print_with_indent(instr):
   print ('    {}'.format(instr))
 
@@ -14,15 +11,24 @@ def print_with_attension(instr):
 
 # TODO: print labels
 # labels are not stored in asm._instructions, but asm._labels (tuple label with its position)
-def print_instructions(instrs, indexes):
+def print_instructions(instrs, indexes, labels):
+  labels_rev = enc.rev (labels)
   for index in indexes:
-    print_with_indent(instrs[index])
+    if index >= 0:
+      l = labels_rev.get(index)
+      if l:
+        print_with_indent ('L.{}'.format(l))
+      print_with_indent(instrs[index])
 
-def print_around(instrs, target):
-  index = instruction_number(instrs, target)
-  print_instructions(instrs, range (max (0, index-2), max (0, index)))
+def print_around(target, instrs, labels):
+  index = instrs.index(target)
+  labels_rev = enc.rev (labels)
+  print_instructions(instrs, range (index-2, index), labels)
+  l = labels_rev.get(index)
+  if l:
+    print_with_indent('L.{}'.format(l))
   print_with_attension(target)
-  print_instructions(instrs, range (min (len(instrs), index), min (len(instrs), index + 2)))
+  print_instructions(instrs, range (index+1, index + 3), labels)
 
 #================ check functions ======================================
 
@@ -32,7 +38,7 @@ def check_branch_delay_slot(instr, instrs, labels):
     index = instrs.index(instr)
     if len(instrs) < index + 3:
       print ('warning: instructions of delay_slot is short?')
-      print_around(instrs, instr)
+      print_around(instr, instrs, labels)
       f = False
     else:
       delay_slot = instrs[index+1:index+4]
@@ -40,7 +46,7 @@ def check_branch_delay_slot(instr, instrs, labels):
       for item in delay_slot:
         if (is_branch (item)):
           print ('warning: branch is located in the position of delay_slot')
-          print_around(instrs, item)
+          print_around(item, instrs, labels)
           f = False
 
   return f
@@ -52,7 +58,7 @@ def check_composed(instr, instrs, labels):
     v = instr
     if v.add_instr.dst == v.mul_instr.dst and v.add_instr.sig != 'thread end':
       print ('warning: dst is the same register in the following composed-instruction')
-      print_around(instrs, instr)
+      print_around(instr, instrs, labels)
       return False
   return True
 
@@ -85,7 +91,7 @@ def is_in_last_delayslot (instr, instrs, labels):
 
   prev = instrs[index - 3]
   if is_branch(prev):
-    return instrs[labels[prev.target]]
+    return instrs[labels[prev.target.name]]
   else:
     return None
 
@@ -114,9 +120,10 @@ def check_regfile(instr, instrs, labels):
     for read in inputs:
       if enc.GENERAL_PURPOSE_REGISTERS.get(out.name, None) and  out.name == read.name:
         print ('warning: regfile is read next to writing instruction')
-        print_around(instrs, prev)
+        print_around(prev, instrs, labels)
         if show_current:
-          print_around(instrs, current)
+          print('-----------------')
+          print_around(current, instrs, labels)
         f = False
 
   return f
@@ -137,7 +144,9 @@ def extract_verbose(instr):
 
 def check_main(instrs, labels):
   instrs = list (map(extract_verbose, instrs))
+  labels = dict (map (lambda x: (x[0].name, x[1]), filter (lambda p: p[0].pinned, labels)))
   f = True
+  print_instructions (instrs, range (0, len (instrs)), labels)
   for check in all_checks:
     f = f and check(instrs, dict (labels))
   return f
