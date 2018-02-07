@@ -84,6 +84,8 @@ Running Tests
 
     sudo nosetests -v
 
+- 128MB or more GPU memory is required to pass tests. Failed some tests with 64MB or less.
+
 Documentation
 -------------
 
