@@ -305,10 +305,10 @@ class MulEmitter(Emitter):
                 # c.f. https://vc4-notes.tumblr.com/post/153467713064/
 
                 if rotate == REGISTERS['r5']:
-                    if raddr_b != _SMALL_IMM['-16']:
+                    if raddr_b != enc._SMALL_IMM['-16']:
                         raise AssembleError(
                                 'Conflict immediate value and r5 rotate')
-                elif raddr_b != _SMALL_IMM[str(rotate%16-16)]:
+                elif raddr_b != enc._SMALL_IMM[str(rotate%16-16)]:
                     raise AssembleError('Conflict immediate value and n rotate')
 
             if rotate == REGISTERS['r5']:
