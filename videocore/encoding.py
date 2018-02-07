@@ -1,5 +1,5 @@
-
-
+from ctypes import Structure, c_ulong, string_at, byref, sizeof
+from struct import pack, unpack
 
 class AssembleError(Exception):
     'Exception related to QPU assembler'
