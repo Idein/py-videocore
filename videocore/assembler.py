@@ -172,7 +172,12 @@ class Emitter(object):
 class AddEmitter(Emitter):
     'Emitter of Add ALU instructions.'
 
-    def _emit(self, op_add, dst, opd1, opd2, sig='no signal', set_flags=True, **kwargs):
+    def _emit(self, op_add, *args, **kwargs):
+        l = enc._ADD_DEFAULT_ARGS.get(op_add, [])
+        args = list(args) + l
+        return self._emit_with_defaults(op_add, *args, **kwargs)
+
+    def _emit_with_defaults(self, op_add, dst, opd1, opd2, sig='no signal', set_flags=True, **kwargs):
 
         muxes, raddr_a, raddr_b, use_imm, unpack, read_pm = \
                 self._encode_read_operands(opd1, opd2)
@@ -244,7 +249,12 @@ class MulEmitter(Emitter):
         self.set_flags = set_flags
         self.increment = increment
 
-    def _emit(self, op_mul, mul_dst, mul_opd1, mul_opd2, rotate=0, pack='nop', **kwargs):
+    def _emit(self, op_mul, *args, **kwargs):
+        l = enc._MUL_DEFAULT_ARGS.get(op_mul, [])
+        args = list(args) + l
+        return self._emit_with_defaults(op_mul, *args, **kwargs)
+
+    def _emit_with_defaults(self, op_mul, mul_dst, mul_opd1, mul_opd2, rotate=0, pack='nop', **kwargs):
 
         mul_pack = enc._MUL_PACK[pack]
 
@@ -506,16 +516,11 @@ class Assembler(object):
                 insn.verbose = ComposedInstr (add_op.verbose, insn.verbose)
             self._instructions[-1] = insn
 
-    # _emit_XXX gives default arguments if needed
-    def _emit_add(self, add_op, *args, **kwargs):
-        l = enc._ADD_DEFAULT_ARGS.get(add_op, [])
-        args = list(args) + l
-        return self._add._emit(add_op, *args, **kwargs)
+    def _emit_add(self, *args, **kwargs):
+        return self._add._emit(*args, **kwargs)
 
-    def _emit_mul(self, mul_op, *args, **kwargs):
-        l = enc._MUL_DEFAULT_ARGS.get(mul_op, [])
-        args = list(args) + l
-        return self._mul._emit(mul_op, *args, **kwargs)
+    def _emit_mul(self, *args, **kwargs):
+        return self._mul._emit(*args, **kwargs)
 
     def _emit_load(self, *args, **kwargs):
         return self._load._emit(*args, **kwargs)
@@ -577,12 +582,7 @@ for name, code in enc._ADD_INSN.items():
 for name, code in enc._MUL_INSN.items():
     if name not in enc._ADD_INSN:
         setattr(Assembler, name, _partialmethod(Assembler._emit_mul, code))
-
-    # XXX bad trick: partial application only for nop in mul
-    if name == 'nop':
-        setattr(MulEmitter, name, _partialmethod(MulEmitter._emit, code, enc._r0, enc._r0, enc._r0))
-    else:
-        setattr(MulEmitter, name, _partialmethod(MulEmitter._emit, code))
+    setattr(MulEmitter, name, _partialmethod(MulEmitter._emit, code))
 
 for name, code in enc._BRANCH_INSN.items():
     setattr(Assembler, name, _partialmethod(Assembler._emit_branch, code))
