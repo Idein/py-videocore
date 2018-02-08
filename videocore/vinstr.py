@@ -42,6 +42,9 @@ class InstrBase(object):
   def get_arg2(self):
     return None
 
+  def get_sig(self):
+    return None
+
 class AddInstr(InstrBase):
   def __init__ (self, op, dst, opd1, opd2, sig, set_flag, cond):
     self.op = op
@@ -67,11 +70,13 @@ class AddInstr(InstrBase):
     if self.op == 'nop':
       s = 'nop'
     else :
-      s = '{}, {}, {}, {}'.format(self.op, self.dst, self.opd1, self.opd2)
+      s = '{} {}, {}, {}'.format(self.op, self.dst, self.opd1, self.opd2)
     if self.set_flag:
       s += ' set_flag=True'
     if not (self.cond == 'always'):
-      s += 'cond={}'.format(cond)
+      s += ' cond={}'.format(cond)
+    if not (self.sig == 'no signal'):
+      s += ' sig={}'.format(self.sig)
     return s
 
   def get_dst(self):
@@ -82,6 +87,9 @@ class AddInstr(InstrBase):
 
   def get_arg2(self):
     return self.opd2
+
+  def get_sig(self):
+    return self.sig
 
 class MulInstr(InstrBase):
   def __init__ (self, op, dst, opd1, opd2, sig, set_flag, cond):
@@ -102,6 +110,8 @@ class MulInstr(InstrBase):
       s += ' set_flag=True'
     if not (self.cond == 'always'):
       s += 'cond={}'.format(self.cond)
+    if not (self.sig == 'no signal'):
+      s += ' sig={}'.format(self.sig)
     return s
 
   def get_dst(self):
@@ -112,6 +122,9 @@ class MulInstr(InstrBase):
 
   def get_arg2(self):
     return self.opd2
+
+  def get_sig(self):
+    return self.sig
 
 class LoadImmInstr(InstrBase):
   def __init__(self, reg1, reg2, imm):
@@ -174,6 +187,9 @@ class ComposedInstr(InstrBase):
 
   def get_arg2(self):
     assert (False)
+
+  def get_sig(self):
+    return self.add_instr.sig
 
 class Label(InstrBase):
   def __init__(self, name):
