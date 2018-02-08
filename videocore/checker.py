@@ -30,56 +30,23 @@ def print_around(target, instrs, labels):
   print_with_attension(target)
   print_instructions(instrs, range (index+1, index + 3), labels)
 
-#================ check functions ======================================
-
-def check_branch_delay_slot(instr, instrs, labels):
-  f = True
-  if (is_branch (instr)):
-    index = instrs.index(instr)
-    if len(instrs) < index + 3:
-      print ('warning: instructions of delay_slot is short?')
-      print_around(instr, instrs, labels)
-      f = False
-    else:
-      delay_slot = instrs[index+1:index+4]
-
-      for item in delay_slot:
-        if (is_branch (item)):
-          print ('warning: branch is located in the position of delay_slot')
-          print_around(item, instrs, labels)
-          f = False
-
-  return f
-
-def check_composed(instr, instrs, labels):
-  if (is_composed(instr)):
-    v = instr
-    if v.add_instr.dst == v.mul_instr.dst and v.add_instr.sig != 'thread end':
-      print ('warning: dst is the same register in the following composed-instruction')
-      print_around(instr, instrs, labels)
-      return False
-  return True
+#================ utility functions ===================================
 
 def is_tmu(reg):
   assert (isinstance (reg, Register))
   return 56 <= reg.addr <= 63
 
-def check_signal(instr, instrs, labels):
-  f = True
-  if not (is_composed (instr) or is_add (instr) or is_mul (instr)):
-    return True
+def is_sfu(reg):
+  assert (isinstance (reg, Register))
+  return 52 <= reg.addr <= 55
 
-  outputs = get_outputs (instr)
-  sig = instr.get_sig()
-
-  if sig and (sig == 'load tmu0' or sig == 'load tmu1'):
-    for out in outputs:
-      if is_tmu(out):
-        print ('warning: signal to tmu and setting tmu register are together')
-        print_around(instr, instrs, labels)
-
-        f = False
-  return f
+def is_sfu_instruction(instr):
+  assert (isinstance (instr, InstrBase))
+  outputs = get_outputs(instr)
+  for output in outputs:
+    if is_sfu(output):
+      return True
+  return False
 
 def get_outputs(instr):
   outputs = []
@@ -113,6 +80,53 @@ def is_in_last_delayslot (instr, instrs, labels):
     return instrs[labels[prev.target.name]]
   else:
     return None
+
+#================ check functions ======================================
+
+def check_branch_delay_slot(instr, instrs, labels):
+  f = True
+  if (is_branch (instr)):
+    index = instrs.index(instr)
+    if len(instrs) < index + 3:
+      print ('warning: instructions of delay_slot is short?')
+      print_around(instr, instrs, labels)
+      f = False
+    else:
+      delay_slot = instrs[index+1:index+4]
+
+      for item in delay_slot:
+        if (is_branch (item)):
+          print ('warning: branch is located in the position of delay_slot')
+          print_around(item, instrs, labels)
+          f = False
+
+  return f
+
+def check_composed(instr, instrs, labels):
+  if (is_composed(instr)):
+    v = instr
+    if v.add_instr.dst == v.mul_instr.dst and v.add_instr.sig != 'thread end':
+      print ('warning: dst is the same register in the following composed-instruction')
+      print_around(instr, instrs, labels)
+      return False
+  return True
+
+def check_signal(instr, instrs, labels):
+  f = True
+  if not (is_composed (instr) or is_add (instr) or is_mul (instr)):
+    return True
+
+  outputs = get_outputs (instr)
+  sig = instr.get_sig()
+
+  if sig and (sig == 'load tmu0' or sig == 'load tmu1'):
+    for out in outputs:
+      if is_tmu(out):
+        print ('warning: signal to tmu and setting tmu register are together')
+        print_around(instr, instrs, labels)
+
+        f = False
+  return f
 
 def check_regfile(instr, instrs, labels):
   f = True
