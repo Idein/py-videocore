@@ -1,3 +1,5 @@
+from functools import reduce
+
 from videocore.vinstr import *
 from videocore.encoding import Register
 
@@ -55,7 +57,7 @@ def get_outputs(instr):
     outputs.append (instr.mul_instr.get_dst())
   elif instr.get_dst():
     outputs.append (instr.get_dst())
-  return filter (lambda x: x != None, outputs)
+  return list (filter (lambda x: x != None, outputs))
 
 def get_inputs(instr):
   inputs = []
@@ -67,7 +69,7 @@ def get_inputs(instr):
   else:
     inputs.append(instr.get_arg1())
     inputs.append(instr.get_arg2())
-  return filter (lambda x: x != None, inputs)
+  return list(filter (lambda x: x != None, inputs))
 
 # return instruction if instr is located in the position of last delay-slot
 def is_in_last_delayslot (instr, instrs, labels):
@@ -80,6 +82,21 @@ def is_in_last_delayslot (instr, instrs, labels):
     return instrs[labels[prev.target.name]]
   else:
     return None
+
+def is_r4(reg):
+  assert (isinstance (reg, Register))
+  return enc.REGISTERS['r4'] == reg
+
+def is_read_from_r4(instr):
+  inputs = get_inputs(instr)
+  return not list (filter(is_r4, inputs)) == []
+
+def is_write_to_r4(instr):
+  outputs = get_outputs(instr)
+  return not list (filter(is_r4, outputs)) == []
+
+def is_use_r4(instr):
+  return is_read_from_r4(instr) or is_write_to_r4(instr)
 
 #================ check functions ======================================
 
@@ -181,7 +198,25 @@ def get_nexts(instr, instrs, labels, n):
   else:
     return []
 
-single_steps = [check_regfile, check_composed, check_branch_delay_slot, check_signal]
+# See Summary of Instruction Restrictions (page 37)
+def check_sfu(instr, instrs, labels):
+  f = True
+  if is_sfu_instruction(instr):
+    n1 = get_nexts(instr, instrs, labels, 1)
+    n2 = get_nexts(instr, instrs, labels, 2)
+
+    for e in n1 + n2:
+      if is_use_r4(e):
+        print("warning: reading from r4 is forbidden in the following two instruction")
+        print_around(e, instrs, labels)
+        f = False
+      if is_sfu_instruction(e) or (e.get_sig() and (e.get_sig() == 'load tmu0' or e.get_sig() == 'load tmu1')):
+        print("warning: writing to r4 is forbidden in the following two instruction")
+        print_around(e, instrs, labels)
+        f = False
+  return f
+
+single_steps = [check_regfile, check_composed, check_branch_delay_slot, check_signal, check_sfu]
 
 def single_step(instrs, labels):
   f = True
