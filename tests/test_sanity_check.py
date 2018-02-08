@@ -70,6 +70,3 @@ def test_tmu_reg2():
 
   for name, prog in locals().items():
     assert (not sanity_check(prog))
-
-# test_sanity_check()
-test_tmu_reg2()

@@ -189,7 +189,10 @@ class ComposedInstr(InstrBase):
     assert (False)
 
   def get_sig(self):
-    return self.add_instr.sig
+    if self.add_instr.sig == 'no signal':
+      return self.mul_instr.sig
+    else:
+      return self.add_instr.sig
 
 class Label(InstrBase):
   def __init__(self, name):
