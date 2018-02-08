@@ -14,7 +14,7 @@ def print_with_attension(instr):
 def print_instructions(instrs, indexes, labels):
   labels_rev = enc.rev (labels)
   for index in indexes:
-    if index >= 0:
+    if 0 <= index <= len(instrs) - 1:
       l = labels_rev.get(index)
       if l:
         print_with_indent ('L.{}'.format(l))
@@ -51,8 +51,6 @@ def check_branch_delay_slot(instr, instrs, labels):
 
   return f
 
-# TODO: check signals
-# writing to 'tmu0_s', and sending signal 'load tmu0' make invalid
 def check_composed(instr, instrs, labels):
   if (is_composed(instr)):
     v = instr
@@ -61,6 +59,27 @@ def check_composed(instr, instrs, labels):
       print_around(instr, instrs, labels)
       return False
   return True
+
+def is_tmu(reg):
+  assert (isinstance (reg, Register))
+  return 56 <= reg.addr <= 63
+
+def check_signal(instr, instrs, labels):
+  f = True
+  if not (is_composed (instr) or is_add (instr) or is_mul (instr)):
+    return True
+
+  outputs = get_outputs (instr)
+  sig = instr.get_sig()
+
+  if sig and (sig == 'load tmu0' or sig == 'load tmu1'):
+    for out in outputs:
+      if is_tmu(out):
+        print ('warning: signal to tmu and setting tmu register are together')
+        print_around(instr, instrs, labels)
+
+        f = False
+  return f
 
 def get_outputs(instr):
   outputs = []
@@ -128,7 +147,7 @@ def check_regfile(instr, instrs, labels):
 
   return f
 
-single_steps = [check_regfile, check_composed, check_branch_delay_slot]
+single_steps = [check_regfile, check_composed, check_branch_delay_slot, check_signal]
 
 def single_step(instrs, labels):
   f = True
