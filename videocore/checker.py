@@ -161,6 +161,26 @@ def check_regfile(instr, instrs, labels):
 
   return f
 
+def get_nexts(instr, instrs, labels, n):
+  index = instrs.index(instr)
+  if n == 0:
+    return [instr]
+
+  l = []
+  n1 = is_in_last_delayslot(instr, instrs, labels)
+  if n1:
+    l.append(n1)
+
+  if index + 1 < len(instrs):
+    n2 = instrs[index+1]
+    l.append(n2)
+
+  if l:
+    l = map(lambda insn: get_nexts (insn, instrs, labels, n-1), l)
+    return list(reduce(lambda x, y: x + y, l))
+  else:
+    return []
+
 single_steps = [check_regfile, check_composed, check_branch_delay_slot, check_signal]
 
 def single_step(instrs, labels):
@@ -175,11 +195,15 @@ all_checks = [single_step]
 def extract_verbose(instr):
   return instr.verbose
 
-def check_main(instrs, labels):
+def prepare(instrs, labels):
   instrs = list (map(extract_verbose, instrs))
   labels = dict (map (lambda x: (x[0].name, x[1]), filter (lambda p: p[0].pinned, labels)))
+  return (instrs, labels)
+
+def check_main(instrs, labels):
+  instrs, labels = prepare(instrs, labels)
   f = True
-  print_instructions (instrs, range (0, len (instrs)), labels)
+  # print_instructions (instrs, range (0, len (instrs)), labels)
   for check in all_checks:
     f = f and check(instrs, dict (labels))
   return f
