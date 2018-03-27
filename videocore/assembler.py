@@ -421,12 +421,12 @@ class LabelEmitter(Emitter):
     'Emitter to provide L.<label name> syntax.'
 
     def __getitem__(self, name):
-        label = Label(self.asm, name)
+        label = Label(self.asm, self.asm._generate_label_name(name))
         self.asm._add_label(label)
         return label
 
     def __getattr__(self, name):
-        return self[name]
+        return self[self.asm._generate_label_name(name)]
 
 class BranchEmitter(Emitter):
     'Emitter of branch instructions.'
@@ -490,6 +490,20 @@ class SemaEmitter(Emitter):
             insn.verbose = SemaInstr(sa, sema_id)
         self.asm._emit(insn)
 
+class LabelNameSpace(object):
+    'Label namespace controller.'
+
+    def __init__(self, asm, name):
+        super(LabelNameSpace, self).__init__()
+        self.asm = asm
+        self.name = name
+
+    def __enter__(self):
+        self.asm._label_name_spaces.append(self.name)
+        return self
+
+    def __exit__(self, exception_type, exception_value, traceback):
+        self.asm._label_name_spaces.pop()
 
 #================================= Assembler ==================================
 
@@ -503,6 +517,7 @@ class Assembler(object):
         self._instructions = []
         self._program_counter = 0
         self._labels = []
+        self._label_name_spaces = []
         self._backpatch_list = []    # list of (instruction index, label)
 
         self._add = AddEmitter(self)
@@ -511,6 +526,8 @@ class Assembler(object):
         self._branch = BranchEmitter(self)
         self._sema = SemaEmitter(self)
         self.L = LabelEmitter(self)
+
+        self.namespace = lambda ns: LabelNameSpace(self, ns)
 
         self.sanity_check = sanity_check
 
@@ -582,6 +599,9 @@ class Assembler(object):
 
         self._backpatch()
         return b''.join(insn.to_bytes() for insn in self._instructions)
+
+    def _generate_label_name(self, name):
+        return '.'.join(self._label_name_spaces + [name])
 
 #=================================== Alias ====================================
 
@@ -816,12 +836,13 @@ def qpu(f):
                 if i[0] != '_':
                     g[str(i)] = getattr(asm, str(i))
             g['L'] = asm.L
+            g['namespace'] = asm.namespace
             f(asm, *args, **kwargs)
         return decorated
 
     return decorate(f)
 
-def assemble(f, *args, **kwargs):
+def _assemble(f, *args, **kwargs):
     'Assemble QPU program to byte string.'
     if kwargs.get('sanity_check', None):
         asm = Assembler(sanity_check=True)
@@ -831,7 +852,15 @@ def assemble(f, *args, **kwargs):
     f(asm, *args, **kwargs)
     if asm.sanity_check:
         check_main(asm._instructions, asm._labels)
-    return asm._get_code()
+    return asm
+
+def assemble(f, *args, **kwargs):
+    return _assemble(f, *args, **kwargs)._get_code()
+
+def get_label_positions(f, *args, **kwargs):
+    asm = _assemble(f, *args, **kwargs)
+    asm._get_code()
+    return asm._labels
 
 def sanity_check(f, *args, **kwargs):
     asm = Assembler(sanity_check=True)
