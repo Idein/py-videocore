@@ -821,7 +821,7 @@ def qpu(f):
 
     return decorate(f)
 
-def assemble(f, *args, **kwargs):
+def _assemble(f, *args, **kwargs):
     'Assemble QPU program to byte string.'
     if kwargs.get('sanity_check', None):
         asm = Assembler(sanity_check=True)
@@ -831,7 +831,15 @@ def assemble(f, *args, **kwargs):
     f(asm, *args, **kwargs)
     if asm.sanity_check:
         check_main(asm._instructions, asm._labels)
-    return asm._get_code()
+    return asm
+
+def assemble(f, *args, **kwargs):
+    return _assemble(f, *args, **kwargs)._get_code()
+
+def get_label_positions(f, *args, **kwargs):
+    asm = _assemble(f, *args, **kwargs)
+    asm._get_code()
+    return asm._labels
 
 def sanity_check(f, *args, **kwargs):
     asm = Assembler(sanity_check=True)
