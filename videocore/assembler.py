@@ -426,7 +426,7 @@ class LabelEmitter(Emitter):
         return label
 
     def __getattr__(self, name):
-        return self[self.asm._generate_label_name(name)]
+        return self[name]
 
 class BranchEmitter(Emitter):
     'Emitter of branch instructions.'
