@@ -337,7 +337,7 @@ class LoadEmitter(Emitter):
 
     def _encode_imm(self, val):
         if isinstance(val, float):
-            return unpack('L', pack('f', val))[0], 0
+            return unpack('<L', pack('f', val))[0], 0
         elif isinstance(val, numbers.Number):
             fmt = 'l' if val < 0 else 'L'
             return unpack('L', pack(fmt, val))[0], 0
