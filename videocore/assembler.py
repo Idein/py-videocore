@@ -172,8 +172,12 @@ class Emitter(object):
 class AddEmitter(Emitter):
     'Emitter of Add ALU instructions.'
 
-    def _emit(self, op_add, dst=REGISTERS['null'], opd1=REGISTERS['r0'],
-            opd2=REGISTERS['r0'], sig='no signal', set_flags=True, **kwargs):
+    def _emit(self, op_add, *args, **kwargs):
+        l = enc._ADD_DEFAULT_ARGS.get(op_add, [])
+        args = list(args) + l
+        return self._emit_with_defaults(op_add, *args, **kwargs)
+
+    def _emit_with_defaults(self, op_add, dst, opd1, opd2, sig='no signal', set_flags=True, **kwargs):
 
         muxes, raddr_a, raddr_b, use_imm, unpack, read_pm = \
                 self._encode_read_operands(opd1, opd2)
@@ -245,8 +249,12 @@ class MulEmitter(Emitter):
         self.set_flags = set_flags
         self.increment = increment
 
-    def _emit(self, op_mul, mul_dst=REGISTERS['null'], mul_opd1=REGISTERS['r0'],
-            mul_opd2=REGISTERS['r0'], rotate=0, pack='nop', **kwargs):
+    def _emit(self, op_mul, *args, **kwargs):
+        l = enc._MUL_DEFAULT_ARGS.get(op_mul, [])
+        args = list(args) + l
+        return self._emit_with_defaults(op_mul, *args, **kwargs)
+
+    def _emit_with_defaults(self, op_mul, mul_dst, mul_opd1, mul_opd2, rotate=0, pack='nop', **kwargs):
 
         mul_pack = enc._MUL_PACK[pack]
 
