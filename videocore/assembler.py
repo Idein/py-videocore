@@ -337,7 +337,7 @@ class MulEmitter(Emitter):
                 mul_a=muxes[2], mul_b=muxes[3]
                 )
         if self.asm.sanity_check:
-            insn.verbose = MulInstr(enc._MUL_INSN_REV[op_mul], mul_dst, mul_opd1, mul_opd2, self.sig, self.set_flags, cond_mul_str)
+            insn.verbose = MulInstr(enc._MUL_INSN_REV[op_mul], mul_dst, mul_opd1, mul_opd2, sig, self.set_flags, cond_mul_str)
         self.asm._emit(insn, increment=self.increment)
 
 class LoadEmitter(Emitter):
