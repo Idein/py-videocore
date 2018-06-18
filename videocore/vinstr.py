@@ -33,6 +33,9 @@ class InstrBase(object):
   def __init__():
     return
 
+  def is_nop(self):
+    return False
+
   def get_dst(self):
     return None
 
@@ -79,6 +82,9 @@ class AddInstr(InstrBase):
       s += ' sig={}'.format(self.sig)
     return s
 
+  def is_nop(self):
+    return self.op == 'nop'
+
   def get_dst(self):
     return self.dst
 
@@ -92,7 +98,7 @@ class AddInstr(InstrBase):
     return self.sig
 
 class MulInstr(InstrBase):
-  def __init__ (self, op, dst, opd1, opd2, sig, set_flag, cond):
+  def __init__ (self, op, dst, opd1, opd2, sig, set_flag, cond, rotate):
     self.op = op
     self.dst = dst
     self.opd1 = opd1
@@ -100,6 +106,7 @@ class MulInstr(InstrBase):
     self.sig = sig
     self.set_flag = set_flag
     self.cond = cond
+    self.rotate = rotate
 
   def __str__(self):
     if self.op == 'nop':
@@ -112,7 +119,15 @@ class MulInstr(InstrBase):
       s += ' cond={}'.format(self.cond)
     if not (self.sig == 'no signal'):
       s += ' sig={}'.format(self.sig)
+    if self.rotate:
+      s += ' rotate={}'.format(self.rotate)
     return s
+
+  def get_rotate(self):
+    return self.rotate
+
+  def is_nop(self):
+    return self.op == 'nop'
 
   def get_dst(self):
     return self.dst
