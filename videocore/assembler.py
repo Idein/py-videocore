@@ -478,7 +478,7 @@ class BranchEmitter(Emitter):
             waddr_mul=waddr_mul, immediate=imm
             )
         if self.asm.sanity_check:
-            insn.verbose = BranchInstr(enc._COND_REV[cond_br], target, reg, absolute, link)
+            insn.verbose = BranchInstr(enc._BRANCH_INSN_REV[cond_br], target, reg, absolute, link)
         self.asm._emit(insn)
 
 class SemaEmitter(Emitter):

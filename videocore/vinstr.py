@@ -74,7 +74,7 @@ class AddInstr(InstrBase):
     if self.set_flag:
       s += ' set_flag=True'
     if not (self.cond == 'always'):
-      s += ' cond={}'.format(cond)
+      s += ' cond={}'.format(self.cond)
     if not (self.sig == 'no signal'):
       s += ' sig={}'.format(self.sig)
     return s
@@ -109,7 +109,7 @@ class MulInstr(InstrBase):
     if self.set_flag:
       s += ' set_flag=True'
     if not (self.cond == 'always'):
-      s += 'cond={}'.format(self.cond)
+      s += ' cond={}'.format(self.cond)
     if not (self.sig == 'no signal'):
       s += ' sig={}'.format(self.sig)
     return s
@@ -157,7 +157,12 @@ class BranchInstr(InstrBase):
     self.link = link
 
   def __str__(self):
-    return '{}(L.{})'.format(self.cond_br, self.target.name)
+    s = self.cond_br
+    if self.target:
+      s += '(L.{})'.format(self.target.name)
+    else:
+      s += link
+    return s
 
 class SemaInstr(InstrBase):
   def __init__(self, sa, sema_id):

@@ -24,6 +24,17 @@ def delay_slot_1(asm):
   exit()
 
 @qpu
+def delay_slot_2(asm):
+  nop()
+  L.label1
+  jzc(reg=ra0)
+  jmp(L.label1)
+  nop()
+  nop()
+  nop()
+  exit()
+
+@qpu
 def regfile_2(asm):
   L.label1
   iadd (r0, ra0, r0)
@@ -37,6 +48,7 @@ def test_sanity_check():
   assert (not sanity_check(regfile_1))
   assert (not sanity_check(composed_1))
   assert (not sanity_check(delay_slot_1))
+  assert (not sanity_check(delay_slot_2))
   assert (not sanity_check(regfile_2))
 
 def test_tmu_reg1():

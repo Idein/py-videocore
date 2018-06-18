@@ -78,8 +78,8 @@ def is_in_last_delayslot (instr, instrs, labels):
     return None
 
   prev = instrs[index - 3]
-  if is_branch(prev):
-    return instrs[labels[prev.target.name]]
+  if is_branch(prev) and prev.target: # destination may not be a label
+    return instrs[labels[prev.target.name]//8]
   else:
     return None
 
@@ -166,9 +166,9 @@ def check_regfile(instr, instrs, labels):
   outputs = get_outputs(prev)
   inputs = get_inputs(current)
 
-  for out in outputs:
-    for read in inputs:
-      if enc.GENERAL_PURPOSE_REGISTERS.get(out.name, None) and  out.name == read.name:
+  for out in list (filter(is_register, outputs)):
+    for read in list (filter(is_register, inputs)):
+      if enc.GENERAL_PURPOSE_REGISTERS.get(out.name, None) and out.name == read.name:
         print ('warning: regfile is read next to writing instruction')
         print_around(prev, instrs, labels)
         if show_current:
