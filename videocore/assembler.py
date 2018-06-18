@@ -299,7 +299,7 @@ class MulEmitter(Emitter):
                 raise AssembleError('Rotate operation is only available when'
                                     ' inputs are taken from r0-r4 or ra')
 
-            if use_imm:
+            if raddr_b != REGISTERS['null'].addr:
 
                 # 'r5 rotate' represents -1.
                 # 'n-upward rotate' represents n-16.
@@ -314,10 +314,15 @@ class MulEmitter(Emitter):
 
                 if rotate == REGISTERS['r5']:
                     if raddr_b != enc._SMALL_IMM['-16']:
-                        raise AssembleError(
-                                'Conflict immediate value and r5 rotate')
+                        if use_imm:
+                            raise AssembleError('Conflict immediate value and r5 rotate')
+                        else:
+                            raise AssembleError('Conflict of regfile B source operand and rotate')
                 elif raddr_b != enc._SMALL_IMM[str(rotate%16-16)]:
-                    raise AssembleError('Conflict immediate value and n rotate')
+                    if use_imm:
+                        raise AssembleError('Conflict immediate value and n rotate')
+                    else:
+                        raise AssembleError('Conflict of regfile B source operand and rotate')
 
             if rotate == REGISTERS['r5']:
                 raddr_b = 48
