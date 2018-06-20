@@ -53,10 +53,13 @@ def is_sfu_instruction(instr):
 def get_outputs(instr):
   outputs = []
   if is_composed (instr):
-    outputs.append (instr.add_instr.get_dst())
-    outputs.append (instr.mul_instr.get_dst())
+    if not instr.add_instr.is_nop():
+      outputs.append (instr.add_instr.get_dst())
+    if not instr.mul_instr.is_nop():
+      outputs.append (instr.mul_instr.get_dst())
   elif instr.get_dst():
-    outputs.append (instr.get_dst())
+    if not instr.is_nop():
+      outputs.append (instr.get_dst())
   return list (filter (lambda x: x != None, outputs))
 
 def get_inputs(instr):
@@ -78,10 +81,13 @@ def is_in_last_delayslot (instr, instrs, labels):
     return None
 
   prev = instrs[index - 3]
-  if is_branch(prev):
-    return instrs[labels[prev.target.name]]
+  if is_branch(prev) and prev.target: # destination may not be a label
+    return instrs[labels[prev.target.name]//8]
   else:
     return None
+
+def is_register(reg):
+  return isinstance(reg, Register)
 
 def is_r4(reg):
   assert (isinstance (reg, Register))
@@ -97,6 +103,9 @@ def is_write_to_r4(instr):
 
 def is_use_r4(instr):
   return is_read_from_r4(instr) or is_write_to_r4(instr)
+
+def is_rotate(instr):
+  return is_mul(instr) and instr.rotate or is_composed(instr) and is_rotate(instr.mul_instr)
 
 #================ check functions ======================================
 
@@ -166,15 +175,54 @@ def check_regfile(instr, instrs, labels):
   outputs = get_outputs(prev)
   inputs = get_inputs(current)
 
-  for out in outputs:
-    for read in inputs:
-      if enc.GENERAL_PURPOSE_REGISTERS.get(out.name, None) and  out.name == read.name:
+  for out in list (filter(is_register, outputs)):
+    for read in list (filter(is_register, inputs)):
+      if enc.GENERAL_PURPOSE_REGISTERS.get(out.name, None) and out.name == read.name:
         print ('warning: regfile is read next to writing instruction')
         print_around(prev, instrs, labels)
         if show_current:
           print('-----------------')
           print_around(current, instrs, labels)
         f = False
+
+  return f
+
+def check_rotate(instr, instrs, labels):
+  prev = instr
+  index = instrs.index(prev)
+  currents = get_nexts(prev, instrs, labels, 1)
+  show_current = True
+
+  f = True
+  for current in currents:
+    if not is_rotate(current):
+      continue
+    if is_composed(current):
+      mul = current.mul_instr
+    else:
+      mul = current
+
+    outputs = get_outputs(prev)
+    inputs = get_inputs(mul)
+    for out in list (set(filter(is_register, outputs))):
+      for inp in list (set(filter(is_register, inputs))):
+        if out.name == inp.name:
+          print('warning: An instruction that does a vector rotate must not immediately follow an instruction that writes to the accumulator that is being rotated.')
+          print_around(prev, instrs, labels)
+          if len(instrs) == index+1 or current != instrs[index+1]:
+            print('-----------------')
+            print_around(current, instrs, labels)
+          f = False
+
+    if mul.get_rotate() == enc.REGISTERS['r5']:
+      for out in outputs:
+        if out == enc.REGISTERS['broadcast']:
+          print('warning: An instruction that does a vector rotate by r5 must not immediately follow an instruction that writes to r5.')
+          print_around(prev, instrs, labels)
+          if len(instrs) == index+1 or current != instrs[index+1]:
+            print('-----------------')
+            print_around(current, instrs, labels)
+          f = False
 
   return f
 
@@ -216,7 +264,7 @@ def check_sfu(instr, instrs, labels):
         f = False
   return f
 
-single_steps = [check_regfile, check_composed, check_branch_delay_slot, check_signal, check_sfu]
+single_steps = [check_regfile, check_composed, check_branch_delay_slot, check_signal, check_sfu, check_rotate]
 
 def single_step(instrs, labels):
   f = True

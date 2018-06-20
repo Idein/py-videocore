@@ -24,6 +24,17 @@ def delay_slot_1(asm):
   exit()
 
 @qpu
+def delay_slot_2(asm):
+  nop()
+  L.label1
+  jzc(reg=ra0)
+  jmp(L.label1)
+  nop()
+  nop()
+  nop()
+  exit()
+
+@qpu
 def regfile_2(asm):
   L.label1
   iadd (r0, ra0, r0)
@@ -37,7 +48,87 @@ def test_sanity_check():
   assert (not sanity_check(regfile_1))
   assert (not sanity_check(composed_1))
   assert (not sanity_check(delay_slot_1))
+  assert (not sanity_check(delay_slot_2))
   assert (not sanity_check(regfile_2))
+
+def test_rotate1():
+  @qpu
+  def rotate1(asm):
+    iadd(r0, r0, 1)
+    rotate(r0, r0, -1)
+
+  @qpu
+  def rotate2(asm):
+    imul24(r0, r0, 1)
+    rotate(r0, r0, -1)
+
+  @qpu
+  def rotate3(asm):
+    iadd(r0, r0, 1).imul24(r1, r1, 1)
+    rotate(r0, r0, -1)
+
+  @qpu
+  def rotate4(asm):
+    iadd(r1, r1, 1).imul24(r0, r0, 1)
+    rotate(r0, r0, -1)
+
+  @qpu
+  def rotate5(asm):
+    iadd(r1, r1, 1).imul24(r0, r0, 1)
+    imul24(r0, r0, r0, rotate=-1)
+
+  @qpu
+  def rotate6(asm):
+    iadd(r1, r1, 1).imul24(r0, r0, 1)
+    imul24(r0, r0, r1, rotate=-1)
+
+  @qpu
+  def rotate7(asm):
+    iadd(broadcast, r0, 1)
+    rotate(r0, r0, r5)
+
+  @qpu
+  def rotate8(asm):
+    iadd(ra0, r0, 1)
+    rotate(ra0, ra0, r5)
+
+  @qpu
+  def rotate9(asm):
+    iadd(broadcast, r0, 1)
+    rotate(ra0, ra0, r5)
+
+  @qpu
+  def rotate10(asm):
+    nop()
+    L.label1
+    rotate(r0, r0, -1)
+    jmp(L.label1)
+    nop();nop()
+    mov(r0, 0)
+
+  @qpu
+  def rotate11(asm):
+    L.label1
+    nop()
+    jzc(L.label1)
+    nop();nop()
+    mov(r0, 0)
+    rotate(r0, r0, -1)
+
+  for name, prog in locals().items():
+    assert( not sanity_check(prog))
+def test_rotate2():
+  @qpu
+  def rotate1(asm):
+    rotate(r0, r0, -1)
+
+  @qpu
+  def rotate2(asm):
+    mov(r0, r1)
+    rotate(r1, r1, -1)
+
+  for name, prog in locals().items():
+    assert( sanity_check(prog))
 
 def test_tmu_reg1():
   @qpu
