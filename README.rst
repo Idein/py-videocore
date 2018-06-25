@@ -13,13 +13,11 @@ thoroughly to study its architecture.
    (PDF) <https://docs.broadcom.com/docs/12358545>`__
    [#appendix]_
 
-As far as I know, modern GPGPU programming environments such as OpenCL
-do not exist for  VideoCore. Assembly programming is the only option at
-this moment and several QPU assemblers written by pioneers
+Several QPU assemblers are written by pioneers
 (`hermanhermitage <https://github.com/hermanhermitage/videocoreiv-qpu/blob/master/qpu-tutorial/qpuasm.md>`__,
 `petewarden <https://github.com/jetpacapp/qpu-asm>`__,
 `elorimer <https://github.com/elorimer/rpi-playground/tree/master/QPU/assembler>`__
-and so on) are available.
+and so on). There is also an implementation of OpenCL for QPU: `VC4CL <https://github.com/doe300/VC4CL>`_.
 
 PyVideoCore's QPU assembler is different from theirs in terms of that
 its assembly language is implemented as an **Internal DSL** of Python
