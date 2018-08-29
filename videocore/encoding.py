@@ -383,3 +383,6 @@ class SemaInsn(Insn):
         ('waddr_add', 6), ('ws', 1), ('sf', 1), ('cond_mul', 3),
         ('cond_add', 3), ('pack', 4), ('pm', 1), ('unpack', 3), ('sig', 4)
         ]]
+
+class RawInsn(Insn):
+    _fields_ = [ (f, c_ulong, n) for f, n in [('raw1', 32), ('raw2', 32)] ]

@@ -503,6 +503,13 @@ class SemaEmitter(Emitter):
             insn.verbose = SemaInstr(sa, sema_id)
         self.asm._emit(insn)
 
+class RawEmitter(Emitter):
+    'Emitter of raw instructions. (DANGER)'
+
+    def _emit(self, val1, val2):
+        insn = enc.RawInsn(raw1 = val1, raw2 = val2)
+        self.asm._emit(insn)
+
 class LabelNameSpace(object):
     'Label namespace controller.'
 
@@ -538,6 +545,7 @@ class Assembler(object):
         self._load = LoadEmitter(self)
         self._branch = BranchEmitter(self)
         self._sema = SemaEmitter(self)
+        self._raw = RawEmitter(self)
         self.L = LabelEmitter(self)
 
         self.namespace = lambda ns: LabelNameSpace(self, ns)
@@ -572,6 +580,9 @@ class Assembler(object):
 
     def _emit_sema(self, *args, **kwargs):
         return self._sema._emit(*args, **kwargs)
+
+    def _emit_raw(self, *args, **kwargs):
+        return self._raw._emit(*args, **kwargs)
 
     def _add_label(self, label):
         self._labels.append((label, self._program_counter))
@@ -808,6 +819,10 @@ def sema_up(asm, sema_id):
 def sema_down(asm, sema_id):
     asm._emit_sema(1, sema_id)
 
+@alias
+def raw(asm, val1, val2):
+    asm._emit_raw(val1, val2);
+
 def qpu(f):
     """Decorator for writing QPU assembly language.
 
@@ -900,4 +915,4 @@ def print_qhex(program, file = sys.stdout, *args, **kwargs):
         code = map(ord, code) if type(code) is str else code
     assert(len(code) % 8 == 0)
     for c in zip(*[iter(code)]*8):
-        print("0x{3:02X}{2:02X}{1:02X}{0:02X}, 0x{7:02X}{6:02X}{5:02X}{4:02X},".format(*c))
+        print("0x{3:02X}{2:02X}{1:02X}{0:02X}, 0x{7:02X}{6:02X}{5:02X}{4:02X},".format(*c), file = file)
