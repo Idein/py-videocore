@@ -221,7 +221,8 @@ MAILBOX_METHODS = [
     ('get_palette',                      0x0004000b,  '',     '1024s'),     
     ('get_dma_channels',                 0x00060001,  '',     ''),     
     ('set_cursor_state',                 0x00008010,  '4L',   'L'),     
-    ('set_cursor_info',                  0x00008011,  '6L',   'L'),     
+    ('set_cursor_info',                  0x00008011,  '6L',   'L'),
+    ('get_throttled',                    0x00030046,  '',     'L'),
     ]
 
 for name, tag, req_fmt, res_fmt in MAILBOX_METHODS:
