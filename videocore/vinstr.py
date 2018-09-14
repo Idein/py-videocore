@@ -176,7 +176,7 @@ class BranchInstr(InstrBase):
     if self.target:
       s += '(L.{})'.format(self.target.name)
     else:
-      s += link
+      s += self.link.name
     return s
 
 class SemaInstr(InstrBase):
