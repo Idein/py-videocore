@@ -233,3 +233,11 @@ class Driver(object):
             uniforms.invalidate()
         if r > 0:
             raise DriverError('QPU execution timeout')
+
+    def load_bin(self, file, *args, **kwargs):
+        with open(file, 'rb') as f:
+            code = f.read()
+        arr = self.ctlmem.alloc('code', shape = int(ceil(len(code) / 8.0)),
+                                dtype = np.uint64)
+        arr.buffer[arr.offset:arr.offset+len(code)] = code
+        return Program(arr.address, arr.usraddr, code, len(code))

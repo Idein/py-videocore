@@ -916,3 +916,13 @@ def print_qhex(program, file = sys.stdout, *args, **kwargs):
     assert(len(code) % 8 == 0)
     for c in zip(*[iter(code)]*8):
         print("0x{3:02X}{2:02X}{1:02X}{0:02X}, 0x{7:02X}{6:02X}{5:02X}{4:02X},".format(*c), file = file)
+
+def save_bin(program, file, *args, **kwargs):
+    'Save QPU program as .bin.'
+    if hasattr(program, '__call__'):
+        program = assemble(program, *args, **kwargs)
+        code = memoryview(program).tobytes()
+        code = map(ord, code) if type(code) is str else code
+    assert(len(code) % 8 == 0)
+    with open(file, 'wb') as f:
+        f.write(code)
