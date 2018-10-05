@@ -16,6 +16,7 @@ from struct import pack, unpack
 import inspect
 import ast
 import numbers
+import pickle
 
 import numpy
 from videocore.vinstr import AddInstr, MulInstr, LoadImmInstr, BranchInstr, SemaInstr, ComposedInstr
@@ -926,3 +927,17 @@ def save_bin(program, file, *args, **kwargs):
     assert(len(code) % 8 == 0)
     with open(file, 'wb') as f:
         f.write(code)
+
+def save_asm(program, file, *args, **kwargs):
+    'Save QPU program and label information.'
+    program = _assemble(program, *args, **kwargs)
+    with open(file, 'wb') as f:
+        pickle.dump(program._get_code(), f)
+        pickle.dump(program._labels, f)
+
+def restore_asm(file, *args, **kwargs):
+    'Restore QPU program and label information.'
+    with open(file, 'rb') as f:
+        code = pickle.load(f)
+        labels = pickle.load(f)
+        return (code, labels)
