@@ -409,6 +409,10 @@ class LoadEmitter(Emitter):
             reg2 = args[1]
             imm = args[2]
 
+        sig = kwargs.get('sig', 'load')
+        if sig != 'load':
+            raise AssembleError('Conflict of signals')
+
         waddr_add, waddr_mul, write_swap, pack = \
                 self._encode_write_operands(reg1, reg2)
 
