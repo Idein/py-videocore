@@ -6,7 +6,7 @@ DSL of Python language.
 
 The QPU instruction set is described in the section 3 of the following document
 `VideoCore(R) IV 3D Architecture Reference Guide
-<https://www.broadcom.com/docs/support/videocore/VideoCoreIV-AG100-R.pdf>`__
+<ttps://docs.broadcom.com/docs/12358545>`__
 """
 
 from __future__ import print_function
