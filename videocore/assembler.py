@@ -11,7 +11,7 @@ The QPU instruction set is described in the section 3 of the following document
 
 from __future__ import print_function
 import sys
-from functools import partial
+from functools import partial, wraps
 from struct import pack, unpack
 import inspect
 import ast
@@ -859,6 +859,7 @@ def qpu(f):
         raise AssembleError('Argument named \'asm\' is necessary')
 
     def decorate(f):
+        @wraps(f)
         def decorated(asm, *args, **kwargs):
             g = f.__globals__
             for reg in Assembler._REGISTERS:
