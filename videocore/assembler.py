@@ -558,7 +558,6 @@ class Assembler(object):
         self._branch = BranchEmitter(self)
         self._sema = SemaEmitter(self)
         self._raw = RawEmitter(self)
-        self._raw_program = RawProgramEmitter(self)
         self.L = LabelEmitter(self)
 
         self.namespace = lambda ns: LabelNameSpace(self, ns)
@@ -596,9 +595,6 @@ class Assembler(object):
 
     def _emit_raw(self, *args, **kwargs):
         return self._raw._emit(*args, **kwargs)
-
-    def _emit_raw_program(self, *args, **kwargs):
-        return self._raw_program._emit(*args, **kwargs)
 
     def _add_label(self, label):
         self._labels.append((label, self._program_counter))
@@ -840,8 +836,14 @@ def raw(asm, val1, val2):
     asm._emit_raw(val1, val2);
 
 @alias
-def raw_program(asm, val, size):
-    asm._emit_raw_program(val, size)
+def raw_program(asm, val):
+    assert(len(val) % 8 == 0)
+
+    for i in range(len(val) // 8):
+        head = i * 8
+        raw1 = int.from_bytes(val[head:head + 4], 'little')
+        raw2 = int.from_bytes(val[head + 4:head + 8], 'little')
+        asm.raw(raw1, raw2)
 
 def qpu(f):
     """Decorator for writing QPU assembly language.
