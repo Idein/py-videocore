@@ -868,7 +868,7 @@ def qpu(f):
 
             asm.exit()
     """
-    args, _, _, _ = inspect.getargspec(f)
+    args = inspect.signature(f).parameters
 
     if 'asm' not in args:
         raise AssembleError('Argument named \'asm\' is necessary')
