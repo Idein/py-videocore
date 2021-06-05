@@ -1,2 +1,3 @@
 numpy
 rpi-vcsm ~= 3.0.0
+ioctl-opt ~= 1.2

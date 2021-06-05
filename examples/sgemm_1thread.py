@@ -469,8 +469,8 @@ def main():
         uniforms[7] = A.strides[0]
         uniforms[8] = B.strides[0]
         uniforms[9] = C.strides[0]
-        uniforms[10] = struct.unpack('L', struct.pack('f', alpha))[0]
-        uniforms[11] = struct.unpack('L', struct.pack('f', beta))[0]
+        uniforms[10] = struct.unpack('=L', struct.pack('f', alpha))[0]
+        uniforms[11] = struct.unpack('=L', struct.pack('f', beta))[0]
 
         # Allocate GPU program.
         code = drv.program(sgemm_gpu_code)

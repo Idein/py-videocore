@@ -2,10 +2,13 @@
 
 import os
 from array import array
+from ctypes import c_void_p
 from struct import calcsize, pack_into, unpack_from
 from fcntl import ioctl
 
-IOCTL_MAILBOX = 0xC0046400   # _IOWR(100, 0, char *)
+from ioctl_opt import IOWR
+
+IOCTL_MAILBOX = IOWR(100, 0, c_void_p)
 
 # Use static constant length buffer to avoid unnecessary copy.
 # See the document of fcntl.ioctl
@@ -86,7 +89,7 @@ class MailBox(object):
         # Since the mailbox property interface overwrites the request tag buffer for returning
         # values to the host, size of the buffer must have enough space for both request
         # arguments and returned values. It must also be 32-bit aligned.
-        tag_size = (max(calcsize(req_fmt), calcsize(res_fmt)) + 3) // 4 * 4
+        tag_size = (max(calcsize('=' + req_fmt), calcsize('=' + res_fmt)) + 3) // 4 * 4
 
         buf = array('B', [0]*IOCTL_BUFSIZE)
         pack_into('=5L' + req_fmt + 'L', buf, 0,
@@ -98,7 +101,7 @@ class MailBox(object):
         if r[1] != REQUEST_SUCCESS:
             raise MailBoxException('Request failed', name, *args)
 
-        assert(r[4] == 0x80000000 | calcsize(res_fmt))
+        assert(r[4] == 0x80000000 | calcsize('=' + res_fmt))
         return r
 
     @classmethod

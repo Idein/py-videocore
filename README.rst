@@ -41,6 +41,7 @@ Requirements
 -  Python 2 (>= 2.6) or Python 3
 -  NumPy
 -  `rpi-vcsm <https://github.com/Idein/rpi-vcsm>`__ ~= 3.0.0
+-  `ioctl-opt <https://github.com/vpelletier/python-ioctl-opt>`__ ~= 1.2
 -  nose (if you want to run tests)
 
 Installation
