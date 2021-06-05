@@ -1,2 +1,2 @@
 numpy
-rpi-vcsm>=2.0.0
+rpi-vcsm ~= 3.0.0
