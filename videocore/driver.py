@@ -22,6 +22,7 @@ class DriverError(Exception):
 class Array(np.ndarray):
     def __new__(cls, *args, **kwargs):
         vcsm = kwargs.pop('vcsm')
+        handle = kwargs.pop('handle')
         address = kwargs.pop('address')  # bus address
         usraddr = kwargs.pop('usraddr')
         buffer = kwargs.pop('buffer')
@@ -34,6 +35,7 @@ class Array(np.ndarray):
             raise DriverError('Array too large: {0}'.format(e))
 
         obj.vcsm = vcsm
+        obj.handle = handle
         obj.address = address
         obj.usraddr = usraddr
         obj.buffer = buffer
@@ -51,11 +53,13 @@ class Array(np.ndarray):
     # Mark the content of CPU cache as invalid i.e. the content must be fetched
     # from memory when user read from the location.
     def invalidate(self):
-        self.vcsm.invalidate(self.usraddr, self.nbytes)
+        self.vcsm.invalidate(handle=self.handle, usr_ptr=self.usraddr,
+                             size=self.nbytes)
 
     # Write the content of CPU cache to memory.
     def clean(self):
-        self.vcsm.clean(self.usraddr, self.nbytes)
+        self.vcsm.clean(handle=self.handle, usr_ptr=self.usraddr,
+                        size=self.nbytes)
 
 class Memory(object):
     def __init__(self, vcsm, size, cache_mode = rpi_vcsm.CACHE_NONE):
@@ -67,7 +71,8 @@ class Memory(object):
         self.buffer = None   # mmap object of the memory area
         try:
             (self.handle, self.busaddr, self.usraddr, self.buffer) = \
-                    vcsm.malloc_cache(size, cache_mode, 'py-videocore')
+                    vcsm.malloc_cache(size=size, cached=cache_mode,
+                                      name='py-videocore')
             if self.handle == 0:
                 raise DriverError('Failed to allocate QPU device memory')
         except:
@@ -76,7 +81,7 @@ class Memory(object):
 
     def close(self):
         if self.handle:
-            self.vcsm.free(self.handle, self.buffer)
+            self.vcsm.free(handle=self.handle, usr_buf=self.buffer)
         self.handle = None
         self.busaddr = None
         self.usraddr = None
@@ -116,6 +121,7 @@ class Mempool(object):
         arr = Array(
                 *args,
                 vcsm = self.vcsm,
+                handle = self.memory.handle,
                 address = self.memory.busaddr + pos,
                 usraddr = self.memory.usraddr + pos,
                 buffer  = self.memory.buffer,
@@ -138,11 +144,12 @@ class Driver(object):
             data_area_size = DEFAULT_DATA_AREA_SIZE,
             code_area_size = DEFAULT_CODE_AREA_SIZE,
             max_threads    = DEFAULT_MAX_THREADS,
-            cache_mode     = rpi_vcsm.CACHE_NONE
+            cache_mode     = rpi_vcsm.CACHE_NONE,
+            force_driver   = None,
             ):
         self.mailbox = MailBox()
         self.mailbox.enable_qpu(1)
-        self.vcsm = rpi_vcsm.VCSM.VCSM()
+        self.vcsm = rpi_vcsm.VCSM.VCSM(force=force_driver)
 
         if cache_mode in [rpi_vcsm.CACHE_HOST, rpi_vcsm.CACHE_BOTH]:
             self.is_cacheop_needed = True

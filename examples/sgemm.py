@@ -3,6 +3,8 @@ import numpy as np
 import struct
 import time
 
+import rpi_vcsm
+
 from videocore.assembler import qpu, assemble, print_qbin
 from videocore.driver import Driver
 
@@ -474,8 +476,8 @@ def sgemm_gpu_code(asm):
 
     exit(interrupt=False)
 
-def main():
-    with Driver() as drv:
+def main(cache_mode=rpi_vcsm.CACHE_NONE):
+    with Driver(cache_mode=cache_mode) as drv:
         p = 96
         q = 363
         r = 3072
@@ -525,8 +527,8 @@ def main():
         uniforms[:, 7] = A.strides[0]
         uniforms[:, 8] = B.strides[0]
         uniforms[:, 9] = C.strides[0]
-        uniforms[:, 10] = struct.unpack('L', struct.pack('f', alpha))[0]
-        uniforms[:, 11] = struct.unpack('L', struct.pack('f', beta))[0]
+        uniforms[:, 10] = struct.unpack('=L', struct.pack('f', alpha))[0]
+        uniforms[:, 11] = struct.unpack('=L', struct.pack('f', beta))[0]
         uniforms[:, 12] = np.arange(n_threads)
         uniforms[:, 13] = n_threads
 
@@ -535,11 +537,17 @@ def main():
 
         # GPU
         start = time.time()
+        if cache_mode in [rpi_vcsm.CACHE_HOST, rpi_vcsm.CACHE_BOTH]:
+            A.clean()
+            B.clean()
+            C.clean()
         drv.execute(
                 n_threads=n_threads,
                 program=code,
                 uniforms=uniforms
                 )
+        if cache_mode in [rpi_vcsm.CACHE_HOST, rpi_vcsm.CACHE_BOTH]:
+            C.invalidate()
         elapsed_gpu = time.time() - start
 
         def Gflops(sec):

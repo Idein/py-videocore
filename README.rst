@@ -33,10 +33,15 @@ in the sense that
 Requirements
 ------------
 
--  Raspberry Pi or Pi 2
+-  Raspberry Pi Zero, 1, 2, or 3
+
+   - For Raspberry Pi 4, use
+     `py-videocore6 <https://github.com/Idein/py-videocore6>`__ instead.
+
 -  Python 2 (>= 2.6) or Python 3
 -  NumPy
--  `rpi-vcsm <https://github.com/Idein/rpi-vcsm>`__ >= 2.0.0
+-  `rpi-vcsm <https://github.com/Idein/rpi-vcsm>`__ ~= 3.0.0
+-  `ioctl-opt <https://github.com/vpelletier/python-ioctl-opt>`__ ~= 1.2
 -  nose (if you want to run tests)
 
 Installation
@@ -46,41 +51,52 @@ Installation
 
     $ git clone https://github.com/nineties/py-videocore.git
     $ cd py-videocore
-    $ sudo python setup.py install
+    $ python setup.py install
 
-You might need to update firmware.
+Note that PyVideoCore does not work with the CPU-side OpenGL graphics stack,
+so configure your pi to use the legacy (original non-GL desktop) driver by the
+``sudo raspi-config`` command (it just comments out all the
+``dtoverlay=vc4-kms-v3d`` and ``dtoverlay=vc4-fkms-v3d`` lines in
+``/boot/config.txt``).
+
+Depending on your running kernel version, PyVideoCore allocates memory through
+``/dev/vcsm`` or ``/dev/vcsm-cma``, which are the devices of the VCSM (VideoCore
+shared memory service) and the VCSM-CMA (contiguous memory allocator) drivers,
+respectively.
+To access the devices, you need to belong to the ``video`` group or need to be
+the ``root`` user.
+If you choose the former, run the following command and re-login.
 
 ::
 
-    $ sudo rpi-update
+    $ sudo usermod --append --groups video $USER
 
-You can increase GPU memory size by ``raspi-config``.
+The plain VCSM driver allocates memory in the GPU-side memory, of which size can
+be configured by the ``gpu_mem=XXX`` option in ``/boot/config.txt`` (e.g.
+``gpu_mem=128`` for 128 MB).
+This can also be done via the ``sudo raspi-config`` command.
 
-::
+On the other hand, the VCSM-CMA driver allocates memory in the CPU-side CMA
+memory, of which size can be configured by the ``dtoverlay=cma,cma-XXX`` option
+in ``/boot/config.txt`` (e.g. ``dtoverlay=cma,cma-128`` for 128 MB).
 
-    $ sudo raspi-config
-
-Be Careful
-----------
-
--  You need to run programs as a super user so that this library can access
-   ``/dev/mem``.
--  Accessing wrong location of ``/dev/mem``, due to a bug of this library or
-   your program, may make your system unstable or could break your machine.
+Nevertheless, VideoCore IV QPUs can access arbitrary portions of the main
+memory, which may make your system unstable and even break your pi, so beware of
+bugs in the programs.
 
 Getting Started
 ---------------
 
 ::
 
-    $ sudo python examples/hello_world.py
+    $ python examples/hello_world.py
 
 Running Tests
 -------------
 
 ::
 
-    sudo nosetests -v
+    $ nosetests -v
 
 - 128MB or more GPU memory is required to pass tests. Failed some tests with 64MB or less.
 

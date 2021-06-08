@@ -72,7 +72,7 @@ def test_unpack_regA_float():
     F = np.random.randn(16)
 
     X = np.zeros((7, 16), dtype='uint32')
-    X[0] = unpack('16L', F.astype('float32'))
+    X[0] = unpack('=16L', F.astype('float32'))
     X[1] = unpack('16H', F.astype('float16'))
     X[2] = unpack('16H', F.astype('float16'))
     X[2] <<= 16
@@ -114,7 +114,7 @@ def test_unpack_R4():
     F = np.random.randn(16)
 
     X = np.zeros((7, 16), dtype='uint32')
-    X[0] = unpack('16L', F.astype('float32'))
+    X[0] = unpack('=16L', F.astype('float32'))
     X[1] = unpack('16H', F.astype('float16'))
     X[2] = unpack('16H', F.astype('float16'))
     X[2] <<= 16
