@@ -130,7 +130,7 @@ class Emitter(object):
         # Check of raddr_b conflict.
         if small_imm is not None and raddr_b is not None:
             raise AssembleError(
-                'Conflict of regfile B source operand and immedaite value'
+                'Conflict of regfile B source operand and immediate value'
                 )
         if small_imm is not None:
             raddr_b = small_imm
