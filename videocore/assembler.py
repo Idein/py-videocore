@@ -116,7 +116,9 @@ class Emitter(object):
             if muxes[i] is not None or isinstance(opd, Register):
                 continue
 
-            imm = enc._SMALL_IMM[repr(opd)]
+            imm = enc._SMALL_IMM.get(repr(opd))
+            if imm is None:
+                raise AssembleError('Unsupported small immediate value: {}'.format(opd))
             if small_imm is None:
                 small_imm = imm
                 muxes[i] = enc._INPUT_MUXES['B']
