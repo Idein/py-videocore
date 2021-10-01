@@ -387,10 +387,3 @@ class SemaInsn(Insn):
 class RawInsn(Insn):
     _fields_ = [ (f, c_ulong, n) for f, n in [('raw1', 32), ('raw2', 32)] ]
 
-class RawProgram(Insn):
-    _fields_ = [('raw', POINTER(c_char)), ('size', c_size_t)]
-
-    def to_bytes(self):
-        'Encode instruction to string.'
-        return string_at(self.raw, self.size)
-

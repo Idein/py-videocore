@@ -15,7 +15,7 @@ def raw_hex(asm):
 @qpu
 def raw_program_hex(asm):
     data = b'\xEF\xBE\xAD\xDE\xCE\xFA\xED\xFE\xBE\xBE\xFE\xCA\x0D\xF0\xDD\xBA'
-    raw_program(create_string_buffer(data, len(data)), len(data))
+    raw_program(data)
 
 def test_raw_hex():
     f = io.StringIO()
