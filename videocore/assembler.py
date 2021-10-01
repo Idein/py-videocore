@@ -116,7 +116,9 @@ class Emitter(object):
             if muxes[i] is not None or isinstance(opd, Register):
                 continue
 
-            imm = enc._SMALL_IMM[repr(opd)]
+            imm = enc._SMALL_IMM.get(repr(opd))
+            if imm is None:
+                raise AssembleError('Unsupported small immediate value: {}'.format(opd))
             if small_imm is None:
                 small_imm = imm
                 muxes[i] = enc._INPUT_MUXES['B']
@@ -128,7 +130,7 @@ class Emitter(object):
         # Check of raddr_b conflict.
         if small_imm is not None and raddr_b is not None:
             raise AssembleError(
-                'Conflict of regfile B source operand and immedaite value'
+                'Conflict of regfile B source operand and immediate value'
                 )
         if small_imm is not None:
             raddr_b = small_imm
