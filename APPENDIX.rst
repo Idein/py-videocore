@@ -6,8 +6,8 @@ Special function unit
 
 -  LOG and EXP are base 2.
 -  RECIP(0) and RECIPSQRT(0) become inf.
--  RECIPSQRT(x) is equal to  1/sqrt(abs(x)).
--  LOG(x) is equalto log(abs(x)) 
+-  RECIPSQRT(x) is equal to 1/sqrt(abs(x)).
+-  LOG(x) is equal to log(abs(x)) 
 
 Errata of 'VideoCore IV Reference Guide'
 ========================================
